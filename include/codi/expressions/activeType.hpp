@@ -66,7 +66,7 @@ namespace codi {
 
     private:
 
-      static thread_local Tape tape;
+      static Tape tape;
 
     public:
 
@@ -105,6 +105,6 @@ namespace codi {
 
   // clang-format off
   template<typename Tape>
-  thread_local CODI_DD(Tape, CODI_DEFAULT_TAPE) ActiveType<Tape>::tape{};
+  CODI_DD(Tape, CODI_DEFAULT_TAPE) ActiveType<Tape>::tape{};
   // clang-format on
 }
