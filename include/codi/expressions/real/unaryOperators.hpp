@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -128,14 +128,14 @@ namespace codi {
 
       /// \copydoc UnaryOperation::gradient
       template<typename Arg>
-      static CODI_INLINE Real gradient(Arg const& arg, Real const& result) {
+      static CODI_INLINE RealTraits::PassiveReal<Real> gradient(Arg const& arg, Real const& result) {
         CODI_UNUSED(result);
         if (arg < 0.0) {
-          return (Real)-1.0;
+          return -1.0;
         } else if (arg > 0.0) {
-          return (Real)1.0;
+          return 1.0;
         } else {
-          return (Real)0.0;
+          return 0.0;
         }
       }
   };
@@ -145,6 +145,14 @@ namespace codi {
 
 #define OPERATION_LOGIC OperationAbs
 #define FUNCTION fabs
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAbs
+#define FUNCTION fabsf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAbs
+#define FUNCTION fabsl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for acos
@@ -176,6 +184,14 @@ namespace codi {
 #define FUNCTION acos
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationAcos
+#define FUNCTION acosf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAcos
+#define FUNCTION acosl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for asin
   template<typename T_Real>
   struct OperationAsin : public UnaryOperation<T_Real> {
@@ -205,6 +221,14 @@ namespace codi {
 #define FUNCTION asin
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationAsin
+#define FUNCTION asinf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAsin
+#define FUNCTION asinl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for atan
   template<typename T_Real>
   struct OperationAtan : public UnaryOperation<T_Real> {
@@ -227,6 +251,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationAtan
 #define FUNCTION atan
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAtan
+#define FUNCTION atanf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAtan
+#define FUNCTION atanl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for atanh
@@ -256,6 +288,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationAtanh
 #define FUNCTION atanh
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAtanh
+#define FUNCTION atanhf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationAtanh
+#define FUNCTION atanhl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for cbrt
@@ -290,9 +330,29 @@ namespace codi {
 #define FUNCTION cbrt
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationCbrt
+#define FUNCTION cbrtf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationCbrt
+#define FUNCTION cbrtl
+#include "unaryOverloads.tpp"
+
   /// Function overload for ceil
   template<typename Real, typename Arg>
   CODI_INLINE RealTraits::PassiveReal<Real> ceil(ExpressionInterface<Real, Arg> const& arg) {
+    return ceil(RealTraits::getPassiveValue(arg.cast()));
+  }
+
+  /// Function overload for ceilf
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> ceilf(ExpressionInterface<Real, Arg> const& arg) {
+    return ceil(RealTraits::getPassiveValue(arg.cast()));
+  }
+
+  /// Function overload for ceill
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> ceill(ExpressionInterface<Real, Arg> const& arg) {
     return ceil(RealTraits::getPassiveValue(arg.cast()));
   }
 
@@ -320,6 +380,14 @@ namespace codi {
 #define FUNCTION cos
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationCos
+#define FUNCTION cosf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationCos
+#define FUNCTION cosl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for cosh
   template<typename T_Real>
   struct OperationCosh : public UnaryOperation<T_Real> {
@@ -342,6 +410,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationCosh
 #define FUNCTION cosh
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationCosh
+#define FUNCTION coshf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationCosh
+#define FUNCTION coshl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for erf
@@ -368,6 +444,14 @@ namespace codi {
 #define FUNCTION erf
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationErf
+#define FUNCTION erff
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationErf
+#define FUNCTION erfl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for erfc
   template<typename T_Real>
   struct OperationErfc : public UnaryOperation<T_Real> {
@@ -390,6 +474,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationErfc
 #define FUNCTION erfc
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationErfc
+#define FUNCTION erfcf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationErfc
+#define FUNCTION erfcl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for exp
@@ -416,9 +508,29 @@ namespace codi {
 #define FUNCTION exp
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationExp
+#define FUNCTION expf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationExp
+#define FUNCTION expl
+#include "unaryOverloads.tpp"
+
   /// Function overload for floor
   template<typename Real, typename Arg>
   CODI_INLINE RealTraits::PassiveReal<Real> floor(ExpressionInterface<Real, Arg> const& arg) {
+    return floor(RealTraits::getPassiveValue(arg.cast()));
+  }
+
+  /// Function overload for floorf
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> floorf(ExpressionInterface<Real, Arg> const& arg) {
+    return floor(RealTraits::getPassiveValue(arg.cast()));
+  }
+
+  /// Function overload for floorl
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> floorl(ExpressionInterface<Real, Arg> const& arg) {
     return floor(RealTraits::getPassiveValue(arg.cast()));
   }
 
@@ -475,6 +587,14 @@ namespace codi {
 #define FUNCTION log
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationLog
+#define FUNCTION logf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationLog
+#define FUNCTION logl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for log10
   template<typename T_Real>
   struct OperationLog10 : public UnaryOperation<T_Real> {
@@ -504,9 +624,29 @@ namespace codi {
 #define FUNCTION log10
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationLog10
+#define FUNCTION log10f
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationLog10
+#define FUNCTION log10l
+#include "unaryOverloads.tpp"
+
   /// Function overload for round
   template<typename Real, typename Arg>
   CODI_INLINE RealTraits::PassiveReal<Real> round(ExpressionInterface<Real, Arg> const& arg) {
+    return round(arg.cast().getValue());
+  }
+
+  /// Function overload for roundf
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> roundf(ExpressionInterface<Real, Arg> const& arg) {
+    return round(arg.cast().getValue());
+  }
+
+  /// Function overload for roundl
+  template<typename Real, typename Arg>
+  CODI_INLINE RealTraits::PassiveReal<Real> roundl(ExpressionInterface<Real, Arg> const& arg) {
     return round(arg.cast().getValue());
   }
 
@@ -534,6 +674,14 @@ namespace codi {
 #define FUNCTION sin
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationSin
+#define FUNCTION sinf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationSin
+#define FUNCTION sinl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for sinh
   template<typename T_Real>
   struct OperationSinh : public UnaryOperation<T_Real> {
@@ -556,6 +704,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationSinh
 #define FUNCTION sinh
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationSinh
+#define FUNCTION sinhf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationSinh
+#define FUNCTION sinhl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for sqrt
@@ -590,6 +746,14 @@ namespace codi {
 #define FUNCTION sqrt
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationSqrt
+#define FUNCTION sqrtf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationSqrt
+#define FUNCTION sqrtl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for tan
   template<typename T_Real>
   struct OperationTan : public UnaryOperation<T_Real> {
@@ -620,6 +784,14 @@ namespace codi {
 #define FUNCTION tan
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationTan
+#define FUNCTION tanf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationTan
+#define FUNCTION tanl
+#include "unaryOverloads.tpp"
+
   /// UnaryOperation implementation for tanh
   template<typename T_Real>
   struct OperationTanh : public UnaryOperation<T_Real> {
@@ -642,6 +814,14 @@ namespace codi {
   };
 #define OPERATION_LOGIC OperationTanh
 #define FUNCTION tanh
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationTanh
+#define FUNCTION tanhf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationTanh
+#define FUNCTION tanhl
 #include "unaryOverloads.tpp"
 
   /// UnaryOperation implementation for tgamma
@@ -703,6 +883,14 @@ namespace codi {
 #define FUNCTION tgamma
 #include "unaryOverloads.tpp"
 
+#define OPERATION_LOGIC OperationTgamma
+#define FUNCTION tgammaf
+#include "unaryOverloads.tpp"
+
+#define OPERATION_LOGIC OperationTgamma
+#define FUNCTION tgammal
+#include "unaryOverloads.tpp"
+
   /// @}
   /*******************************************************************************/
   /// @name Additional standard library unary operators
@@ -723,31 +911,75 @@ namespace std {
 
   using codi::abs;
   using codi::acos;
+  using codi::acosf;
+  using codi::acosl;
   using codi::asin;
+  using codi::asinf;
+  using codi::asinl;
   using codi::atan;
+  using codi::atanf;
   using codi::atanh;
+  using codi::atanhf;
+  using codi::atanhl;
+  using codi::atanl;
   using codi::cbrt;
+  using codi::cbrtf;
+  using codi::cbrtl;
   using codi::ceil;
+  using codi::ceilf;
+  using codi::ceill;
   using codi::cos;
+  using codi::cosf;
   using codi::cosh;
+  using codi::coshf;
+  using codi::coshl;
+  using codi::cosl;
   using codi::erf;
   using codi::erfc;
+  using codi::erfcf;
+  using codi::erfcl;
+  using codi::erff;
+  using codi::erfl;
   using codi::exp;
+  using codi::expf;
+  using codi::expl;
   using codi::fabs;
+  using codi::fabsf;
+  using codi::fabsl;
   using codi::floor;
+  using codi::floorf;
+  using codi::floorl;
   using codi::isfinite;
   using codi::isinf;
   using codi::isnan;
   using codi::isnormal;
   using codi::log;
   using codi::log10;
+  using codi::log10f;
+  using codi::log10l;
+  using codi::logf;
+  using codi::logl;
   using codi::round;
+  using codi::roundf;
+  using codi::roundl;
   using codi::sin;
+  using codi::sinf;
   using codi::sinh;
+  using codi::sinhf;
+  using codi::sinhl;
+  using codi::sinl;
   using codi::sqrt;
+  using codi::sqrtf;
+  using codi::sqrtl;
   using codi::tan;
+  using codi::tanf;
   using codi::tanh;
+  using codi::tanhf;
+  using codi::tanhl;
+  using codi::tanl;
   using codi::tgamma;
+  using codi::tgammaf;
+  using codi::tgammal;
 
   using codi::to_string;
 }

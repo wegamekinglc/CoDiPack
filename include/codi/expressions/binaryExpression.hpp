@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -101,8 +101,8 @@ namespace codi {
 
       /// Constructor
       template<typename RealA, typename RealB>
-      explicit BinaryExpression(ExpressionInterface<RealA, ArgA> const& argA,
-                                ExpressionInterface<RealB, ArgB> const& argB)
+      CODI_INLINE explicit BinaryExpression(ExpressionInterface<RealA, ArgA> const& argA,
+                                            ExpressionInterface<RealB, ArgB> const& argB)
           : argA(argA.cast()),
             argB(argB.cast()),
             result(Operation::primal(this->argA.getValue(), this->argB.getValue())) {}

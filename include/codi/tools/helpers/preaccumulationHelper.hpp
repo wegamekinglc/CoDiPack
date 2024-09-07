@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,6 +41,7 @@
 #include "../../expressions/lhsExpressionInterface.hpp"
 #include "../../misc/exceptions.hpp"
 #include "../../tapes/interfaces/fullTapeInterface.hpp"
+#include "../../tapes/tagging/tagTapeReverse.hpp"
 #include "../../traits/gradientTraits.hpp"
 #include "../../traits/tapeTraits.hpp"
 #include "../algorithms.hpp"
@@ -172,7 +173,7 @@ namespace codi {
       void addInputLogic(Type const& input) {
         EventSystem<Tape>::notifyPreaccAddInputListeners(Type::getTape(), input.getValue(), input.getIdentifier());
         Identifier const& identifier = input.getIdentifier();
-        if (0 != identifier) {
+        if (Type::getTape().getPassiveIndex() != identifier) {
           inputData.push_back(identifier);
         }
       }
@@ -191,7 +192,7 @@ namespace codi {
       void addOutputLogic(Type& output) {
         EventSystem<Tape>::notifyPreaccAddOutputListeners(Type::getTape(), output.value(), output.getIdentifier());
         Identifier const& identifier = output.getIdentifier();
-        if (0 != identifier) {
+        if (Type::getTape().getPassiveIndex() != identifier) {
           outputData.push_back(identifier);
           outputValues.push_back(&output);
         }
@@ -241,11 +242,18 @@ namespace codi {
           jacobian.resize(outputData.size(), inputData.size());
         }
 
+        // Manage adjoints manually to reduce the impact of locking on the performance.
+        tape.resizeAdjointVector();
+        tape.beginUseAdjointVector();
+
         Algorithms<Type, false>::computeJacobian(startPos, endPos, inputData.data(), inputData.size(),
-                                                 outputData.data(), outputData.size(), jacobian);
+                                                 outputData.data(), outputData.size(), jacobian,
+                                                 AdjointsManagement::Manual);
 
         // Store the Jacobian matrix.
-        tape.resetTo(startPos);
+        tape.resetTo(startPos, true, AdjointsManagement::Manual);
+
+        tape.endUseAdjointVector();
 
         for (size_t curOut = 0; curOut < outputData.size(); ++curOut) {
           Type& value = *outputValues[curOut];
@@ -359,5 +367,127 @@ namespace codi {
   /// Specialize PreaccumulationHelper for doubles.
   template<>
   struct PreaccumulationHelper<double, void> : public PreaccumulationHelperNoOpBase {};
+
+  /**
+   * @brief Helper implementation of the PreaccumulationHelper interface for tag tapes.
+   *
+   * It changes the current tag of the tape and sets this tag on all inputs. After the
+   * preaccumulation is finished the original tag is restored on the tape, the inputs
+   * and the outputs.
+   */
+  template<typename T_Type>
+  struct PreaccumulationHelper<
+      T_Type, typename enable_if_same<typename T_Type::Tape,
+                                      TagTapeReverse<typename T_Type::Real, typename T_Type::Tape::Tag>>::type> {
+    public:
+
+      using Type = CODI_DD(T_Type, CODI_DEFAULT_LHS_EXPRESSION);  ///< See PreaccumulationHelper.
+
+      using Tape = CODI_DD(typename Type::Tape, CODI_T(TagTapeReverse<Type, int>));  ///< Tape of the CoDiPack type.
+      using Tag = typename Tape::Tag;                                                ///< Tag of the tape.
+
+    private:
+
+      std::vector<Type const*> inputLocations;
+      std::vector<Type*> outputLocations;
+      Tag oldTag;
+
+    public:
+
+      /// Constructor.
+      CODI_INLINE PreaccumulationHelper() = default;
+
+      /// Gathers the input values.
+      template<typename... Inputs>
+      void addInput(Inputs const&... inputs) {
+        Tape& tape = getTape();
+
+        if (tape.isActive() && tape.isPreaccumulationHandlingEnabled()) {
+          addInputRecursive(inputs...);
+        }
+      }
+
+      /// Set special tag on inputs.
+      template<typename... Inputs>
+      void start(Inputs const&... inputs) {
+        Tape& tape = getTape();
+
+        if (tape.isActive() && tape.isPreaccumulationHandlingEnabled()) {
+          inputLocations.clear();
+          outputLocations.clear();
+          oldTag = tape.getCurTag();
+          tape.setCurTag(tape.getPreaccumulationHandlingTag());
+
+          addInputRecursive(inputs...);
+        }
+      }
+
+      /// Gathers the outputs.
+      template<typename... Outputs>
+      void addOutput(Outputs&... outputs) {
+        Tape& tape = getTape();
+
+        if (tape.isActive() && tape.isPreaccumulationHandlingEnabled()) {
+          addOutputRecursive(outputs...);
+        }
+      }
+
+      /// Reverts the tags on all input and output values.
+      template<typename... Outputs>
+      void finish(bool const storeAdjoints, Outputs&... outputs) {
+        CODI_UNUSED(storeAdjoints);
+
+        Tape& tape = getTape();
+
+        if (tape.isActive() && tape.isPreaccumulationHandlingEnabled()) {
+          addOutputRecursive(outputs...);
+
+          tape.setCurTag(oldTag);
+          for (Type const* curInput : inputLocations) {
+            tape.setTagOnVariable(*curInput);
+          }
+          for (Type* curOutput : outputLocations) {
+            tape.setTagOnVariable(*curOutput);
+          }
+        }
+      }
+
+    private:
+
+      /// Terminator for the recursive implementation.
+      void addInputRecursive() {
+        // Terminator implementation.
+      }
+
+      template<typename... Inputs>
+      void addInputRecursive(Type const& input, Inputs const&... r) {
+        handleInput(input);
+        addInputRecursive(r...);
+      }
+
+      void handleInput(Type const& input) {
+        inputLocations.push_back(&input);
+        getTape().setTagOnVariable(input);
+      }
+
+      /// Terminator for the recursive implementation.
+      void addOutputRecursive() {
+        // Terminator implementation.
+      }
+
+      template<typename... Outputs>
+      void addOutputRecursive(Type& output, Outputs&... r) {
+        handleOutput(output);
+        addOutputRecursive(r...);
+      }
+
+      void handleOutput(Type& value) {
+        outputLocations.push_back(&value);
+      }
+
+      Tape& getTape() {
+        return Type::getTape();
+      }
+  };
 #endif
 }

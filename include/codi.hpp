@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@
 
 #include "codi/config.h"
 #include "codi/expressions/activeType.hpp"
+#include "codi/expressions/activeTypeStatelessTape.hpp"
 #include "codi/expressions/activeTypeWrapper.hpp"
 #include "codi/expressions/immutableActiveType.hpp"
 #include "codi/expressions/real/allOperators.hpp"
@@ -53,6 +54,8 @@
 #include "codi/tapes/statementEvaluators/directStatementEvaluator.hpp"
 #include "codi/tapes/statementEvaluators/innerStatementEvaluator.hpp"
 #include "codi/tapes/statementEvaluators/reverseStatementEvaluator.hpp"
+#include "codi/tapes/tagging/tagTapeForward.hpp"
+#include "codi/tapes/tagging/tagTapeReverse.hpp"
 #include "codi/tools/data/aggregatedTypeVectorAccessWrapper.hpp"
 #include "codi/tools/data/direction.hpp"
 #include "codi/tools/data/externalFunctionUserData.hpp"
@@ -65,6 +68,7 @@
 #include "codi/tools/helpers/preaccumulationHelper.hpp"
 #include "codi/tools/helpers/statementPushHelper.hpp"
 #include "codi/tools/helpers/tapeHelper.hpp"
+#include "codi/tools/lowlevelFunctions/lowLevelFunctionCreationUtilities.hpp"
 #include "codi/traits/computationTraits.hpp"
 #include "codi/traits/numericLimits.hpp"
 #include "codi/traits/tapeTraits.hpp"
@@ -75,15 +79,20 @@
 
 #if CODI_EnableEigen
   #include "codi/tools/helpers/linearSystem/eigenLinearSystem.hpp"
+  #include "codi/tools/lowlevelFunctions/linearAlgebra/matrixMatrixMultiplication.hpp"
+#endif
+
+#if CODI_EnableEnzyme
+  #include "codi/tools/helpers/enzymeExternalFunctionHelper.hpp"
 #endif
 
 /** \copydoc codi::Namespace */
 namespace codi {
 
 #define CODI_MAJOR_VERSION 2
-#define CODI_MINOR_VERSION 1
+#define CODI_MINOR_VERSION 2
 #define CODI_BUILD_VERSION 0
-#define CODI_VERSION "2.1.0"
+#define CODI_VERSION "2.2.0"
 
   /// General forward AD type. See \ref sec_forwardAD for a forward mode AD explanation or \ref ActiveTypeList for a
   /// list of all types.
@@ -239,8 +248,16 @@ namespace codi {
    */
   using JacobianComputationScalarType = RealReverseIndex;
 
+  /// Type for checking errors of the application with respect to other CoDiPack types. Resembles a CoDiPack reverse
+  /// type.
+  using RealReverseTag = ActiveType<TagTapeReverse<double, int>>;
+
+  /// Type for checking errors of the application with respect to other CoDiPack types. Resembles a CoDiPack forward
+  /// type.
+  using RealForwardTag = ActiveType<TagTapeForward<double, int>>;
 }
 
+#include "codi/tools/cuda/codiCUDA.hpp"
 #include "codi/tools/helpers/evaluationHelper.hpp"
 
 #if CODI_EnableOpenMP

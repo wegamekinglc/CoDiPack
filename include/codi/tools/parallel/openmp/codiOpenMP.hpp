@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,18 +39,22 @@
 #include "../../../tapes/indices/parallelReuseIndexManager.hpp"
 #include "../../../tapes/misc/threadSafeGlobalAdjoints.hpp"
 #include "../../data/direction.hpp"
-#include "../../helpers/openMPExternalFunctionHelper.hpp"
 #include "openMPAtomic.hpp"
 #include "openMPMutex.hpp"
 #include "openMPStaticThreadLocalPointer.hpp"
+#include "openMPSynchronization.hpp"
 #include "openMPThreadInformation.hpp"
 
 /** \copydoc codi::Namespace */
 namespace codi {
 
   /// Parallel toolbox for OpenMP.
-  using OpenMPToolbox =
-      ParallelToolbox<OpenMPThreadInformation, OpenMPAtomic, OpenMPMutex, OpenMPStaticThreadLocalPointer>;
+  using OpenMPToolbox = ParallelToolbox<OpenMPThreadInformation, OpenMPAtomic, OpenMPMutex,
+                                        OpenMPStaticThreadLocalPointer, OpenMPSynchronization>;
+
+  /// Thread-safe external function helper for external functions jointly worked on by multiple OpenMP threads.
+  template<typename Type>
+  using OpenMPExternalFunctionHelper = ExternalFunctionHelper<Type, OpenMPSynchronization, OpenMPThreadInformation>;
 
   /// Thread-safe global adjoints for OpenMP.
   template<typename Gradient, typename Identifier, typename Tape>

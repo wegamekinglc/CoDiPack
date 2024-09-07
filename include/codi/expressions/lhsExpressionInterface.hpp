@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,6 +37,7 @@
 #include "../config.h"
 #include "../misc/eventSystem.hpp"
 #include "../misc/macros.hpp"
+#include "../misc/toConst.hpp"
 #include "../tapes/interfaces/fullTapeInterface.hpp"
 #include "../traits/expressionTraits.hpp"
 #include "../traits/realTraits.hpp"
@@ -67,7 +68,7 @@ namespace codi {
       using Tape = CODI_DD(T_Tape, CODI_DEFAULT_TAPE);       ///< See LhsExpressionInterface.
       using Impl = CODI_DD(T_Impl, LhsExpressionInterface);  ///< See LhsExpressionInterface.
 
-      using Base = ExpressionInterface<T_Real, T_Impl>;
+      using Base = ExpressionInterface<T_Real, T_Impl>;  ///< Base class abbreviation.
 
       using Identifier = typename Tape::Identifier;       ///< See GradientAccessTapeInterface.
       using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
@@ -107,7 +108,7 @@ namespace codi {
 
       /// Get the gradient of this lvalue from the tape.
       CODI_INLINE Gradient const& gradient() const {
-        return const_cast<Tape const&>(Impl::getTape()).gradient(cast().getIdentifier());
+        return toConst(Impl::getTape()).gradient(cast().getIdentifier());
       }
 
       /// Get the gradient of this lvalue from the tape.

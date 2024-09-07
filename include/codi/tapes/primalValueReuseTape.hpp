@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -69,7 +69,7 @@ namespace codi {
                   CODI_T(PrimalValueTapeTypes<double, double, IndexManagerInterface<int>, StatementEvaluatorInterface,
                                               DefaultChunkedData>));  ///< See PrimalValueReuseTape.
 
-      using Base = PrimalValueBaseTape<TapeTypes, PrimalValueReuseTape<TapeTypes>>;  ///< Base class abbreviation.
+      using Base = PrimalValueBaseTape<T_TapeTypes, PrimalValueReuseTape<T_TapeTypes>>;  ///< Base class abbreviation.
       friend Base;  ///< Allow the base class to call protected and private methods.
 
       using Real = typename TapeTypes::Real;                              ///< See TapeTypesInterface.
@@ -88,7 +88,12 @@ namespace codi {
       using Base::clearAdjoints;
 
       /// \copydoc codi::PositionalEvaluationTapeInterface::clearAdjoints
-      void clearAdjoints(Position const& start, Position const& end) {
+      /// <br> Implementation: Automatic adjoints management has no effect. Primal value tapes do not implement adjoints
+      /// locking.
+      void clearAdjoints(Position const& start, Position const& end,
+                         AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) {
+        CODI_UNUSED(adjointsManagement);
+
         auto clearFunc = [this](Identifier* lhsIndex, Config::ArgumentSize* passiveArgs, Real* oldPrimal,
                                 EvalHandle* evalHandle) {
           CODI_UNUSED(passiveArgs, oldPrimal, evalHandle);
@@ -99,18 +104,23 @@ namespace codi {
         };
 
         using StmtPosition = typename StatementData::Position;
-        StmtPosition startStmt = this->externalFunctionData.template extractPosition<StmtPosition>(start);
-        StmtPosition endStmt = this->externalFunctionData.template extractPosition<StmtPosition>(end);
+        StmtPosition startStmt = this->llfByteData.template extractPosition<StmtPosition>(start);
+        StmtPosition endStmt = this->llfByteData.template extractPosition<StmtPosition>(end);
 
         this->statementData.forEachReverse(startStmt, endStmt, clearFunc);
       }
 
     protected:
 
-      /// \copydoc codi::PrimalValueBaseTape::internalEvaluateForward_Step3_EvalStatements
-      CODI_INLINE static void internalEvaluateForward_Step3_EvalStatements(
+      /// \copydoc codi::PrimalValueBaseTape::internalEvaluateForward_EvalStatements
+      CODI_INLINE static void internalEvaluateForward_EvalStatements(
           /* data from call */
           PrimalValueReuseTape& tape, Real* primalVector, ADJOINT_VECTOR_TYPE* adjointVector,
+          /* data from low level function byte data vector */
+          size_t& curLLFByteDataPos, size_t const& endLLFByteDataPos, char* dataPtr,
+          /* data from low level function info data vector */
+          size_t& curLLFInfoDataPos, size_t const& endLLFInfoDataPos, Config::LowLevelFunctionToken* const tokenPtr,
+          Config::LowLevelFunctionDataSize* const dataSizePtr,
           /* data from constantValueData */
           size_t& curConstantPos, size_t const& endConstantPos, PassiveReal const* const constantValues,
           /* data from passiveValueData */
@@ -121,39 +131,60 @@ namespace codi {
           size_t& curStatementPos, size_t const& endStatementPos, Identifier const* const lhsIdentifiers,
           Config::ArgumentSize const* const numberOfPassiveArguments, Real* const oldPrimalValues,
           EvalHandle const* const stmtEvalhandle) {
-        CODI_UNUSED(endConstantPos, endPassivePos, endRhsIdentifiersPos);
+        CODI_UNUSED(endLLFByteDataPos, endLLFInfoDataPos, endConstantPos, endPassivePos, endRhsIdentifiersPos);
 
-        while (curStatementPos < endStatementPos) {
-          Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
+#if !CODI_VariableAdjointInterfaceInPrimalTapes
+        typename Base::template VectorAccess<Gradient> vectorAccess(adjointVector, primalVector);
+#endif
 
-          Gradient lhsTangent = Gradient();
+        while (curStatementPos < endStatementPos) CODI_Likely {
+          Config::ArgumentSize nPassiveValues = numberOfPassiveArguments[curStatementPos];
 
-          oldPrimalValues[curStatementPos] = primalVector[lhsIdentifier];
-          primalVector[lhsIdentifier] = StatementEvaluator::template callForward<PrimalValueReuseTape>(
-              stmtEvalhandle[curStatementPos], primalVector, adjointVector, lhsTangent,
-              numberOfPassiveArguments[curStatementPos], curConstantPos, constantValues, curPassivePos, passiveValues,
-              curRhsIdentifiersPos, rhsIdentifiers);
+          if (Config::StatementLowLevelFunctionTag == nPassiveValues) CODI_Unlikely {
+            Base::template callLowLevelFunction<LowLevelFunctionEntryCallKind::Forward>(
+                tape, true, curLLFByteDataPos, dataPtr, curLLFInfoDataPos, tokenPtr, dataSizePtr,
+#if CODI_VariableAdjointInterfaceInPrimalTapes
+                adjointVector
+#else
+                &vectorAccess
+#endif
+            );
+          } else CODI_Likely {
+            Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
+
+            Gradient lhsTangent = Gradient();
+
+            oldPrimalValues[curStatementPos] = primalVector[lhsIdentifier];
+            primalVector[lhsIdentifier] = StatementEvaluator::template callForward<PrimalValueReuseTape>(
+                stmtEvalhandle[curStatementPos], primalVector, adjointVector, lhsTangent, nPassiveValues,
+                curConstantPos, constantValues, curPassivePos, passiveValues, curRhsIdentifiersPos, rhsIdentifiers);
 
 #if CODI_VariableAdjointInterfaceInPrimalTapes
-          adjointVector->setLhsTangent(lhsIdentifier);
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
-              tape, lhsIdentifier, adjointVector->getVectorSize(), adjointVector->getAdjointVec(lhsIdentifier));
+            adjointVector->setLhsTangent(lhsIdentifier);
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
+                tape, lhsIdentifier, adjointVector->getVectorSize(), adjointVector->getAdjointVec(lhsIdentifier));
 #else
-          adjointVector[lhsIdentifier] = lhsTangent;
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
-              tape, lhsIdentifier, GradientTraits::dim<Gradient>(), GradientTraits::toArray(lhsTangent).data());
+            adjointVector[lhsIdentifier] = lhsTangent;
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
+                tape, lhsIdentifier, GradientTraits::dim<Gradient>(), GradientTraits::toArray(lhsTangent).data());
 #endif
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
-                                                                                    primalVector[lhsIdentifier]);
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
+                                                                                      primalVector[lhsIdentifier]);
+          }
 
           curStatementPos += 1;
         }
       }
 
-      /// \copydoc codi::PrimalValueBaseTape::internalEvaluatePrimal_Step3_EvalStatements
-      CODI_INLINE static void internalEvaluatePrimal_Step3_EvalStatements(
+      /// \copydoc codi::PrimalValueBaseTape::internalEvaluatePrimal_EvalStatements
+      CODI_INLINE static void internalEvaluatePrimal_EvalStatements(
           /* data from call */
           PrimalValueReuseTape& tape, Real* primalVector,
+          /* data from low level function byte data vector */
+          size_t& curLLFByteDataPos, size_t const& endLLFByteDataPos, char* dataPtr,
+          /* data from low level function info data vector */
+          size_t& curLLFInfoDataPos, size_t const& endLLFInfoDataPos, Config::LowLevelFunctionToken* const tokenPtr,
+          Config::LowLevelFunctionDataSize* const dataSizePtr,
           /* data from constantValueData */
           size_t& curConstantPos, size_t const& endConstantPos, PassiveReal const* const constantValues,
           /* data from passiveValueData */
@@ -164,27 +195,41 @@ namespace codi {
           size_t& curStatementPos, size_t const& endStatementPos, Identifier const* const lhsIdentifiers,
           Config::ArgumentSize const* const numberOfPassiveArguments, Real* const oldPrimalValues,
           EvalHandle const* const stmtEvalhandle) {
-        CODI_UNUSED(endConstantPos, endPassivePos, endRhsIdentifiersPos);
+        CODI_UNUSED(endLLFByteDataPos, endLLFInfoDataPos, endConstantPos, endPassivePos, endRhsIdentifiersPos);
 
-        while (curStatementPos < endStatementPos) {
-          Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
+        typename Base::template VectorAccess<Gradient> vectorAccess(nullptr, primalVector);
 
-          oldPrimalValues[curStatementPos] = primalVector[lhsIdentifier];
-          primalVector[lhsIdentifier] = StatementEvaluator::template callPrimal<PrimalValueReuseTape>(
-              stmtEvalhandle[curStatementPos], primalVector, numberOfPassiveArguments[curStatementPos], curConstantPos,
-              constantValues, curPassivePos, passiveValues, curRhsIdentifiersPos, rhsIdentifiers);
+        while (curStatementPos < endStatementPos) CODI_Likely {
+          Config::ArgumentSize nPassiveValues = numberOfPassiveArguments[curStatementPos];
 
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
-                                                                                    primalVector[lhsIdentifier]);
+          if (Config::StatementLowLevelFunctionTag == nPassiveValues) CODI_Unlikely {
+            Base::template callLowLevelFunction<LowLevelFunctionEntryCallKind::Primal>(
+                tape, true, curLLFByteDataPos, dataPtr, curLLFInfoDataPos, tokenPtr, dataSizePtr, &vectorAccess);
+          } else CODI_Likely {
+            Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
+
+            oldPrimalValues[curStatementPos] = primalVector[lhsIdentifier];
+            primalVector[lhsIdentifier] = StatementEvaluator::template callPrimal<PrimalValueReuseTape>(
+                stmtEvalhandle[curStatementPos], primalVector, numberOfPassiveArguments[curStatementPos],
+                curConstantPos, constantValues, curPassivePos, passiveValues, curRhsIdentifiersPos, rhsIdentifiers);
+
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
+                                                                                      primalVector[lhsIdentifier]);
+          }
 
           curStatementPos += 1;
         }
       }
 
-      /// \copydoc codi::PrimalValueBaseTape::internalEvaluateReverse_Step3_EvalStatements
-      CODI_INLINE static void internalEvaluateReverse_Step3_EvalStatements(
+      /// \copydoc codi::PrimalValueBaseTape::internalEvaluateReverse_EvalStatements
+      CODI_INLINE static void internalEvaluateReverse_EvalStatements(
           /* data from call */
           PrimalValueReuseTape& tape, Real* primalVector, ADJOINT_VECTOR_TYPE* adjointVector,
+          /* data from low level function byte data vector */
+          size_t& curLLFByteDataPos, size_t const& endLLFByteDataPos, char* dataPtr,
+          /* data from low level function info data vector */
+          size_t& curLLFInfoDataPos, size_t const& endLLFInfoDataPos, Config::LowLevelFunctionToken* const tokenPtr,
+          Config::LowLevelFunctionDataSize* const dataSizePtr,
           /* data from constantValueData */
           size_t& curConstantPos, size_t const& endConstantPos, PassiveReal const* const constantValues,
           /* data from passiveValueData */
@@ -195,33 +240,50 @@ namespace codi {
           size_t& curStatementPos, size_t const& endStatementPos, Identifier const* const lhsIdentifiers,
           Config::ArgumentSize const* const numberOfPassiveArguments, Real const* const oldPrimalValues,
           EvalHandle const* const stmtEvalhandle) {
-        CODI_UNUSED(endConstantPos, endPassivePos, endRhsIdentifiersPos);
+        CODI_UNUSED(endLLFByteDataPos, endLLFInfoDataPos, endConstantPos, endPassivePos, endRhsIdentifiersPos);
 
-        while (curStatementPos > endStatementPos) {
+#if !CODI_VariableAdjointInterfaceInPrimalTapes
+        typename Base::template VectorAccess<Gradient> vectorAccess(adjointVector, primalVector);
+#endif
+
+        while (curStatementPos > endStatementPos) CODI_Likely {
           curStatementPos -= 1;
 
-          Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
+          Config::ArgumentSize nPassiveValues = numberOfPassiveArguments[curStatementPos];
+
+          if (Config::StatementLowLevelFunctionTag == nPassiveValues) CODI_Unlikely {
+            Base::template callLowLevelFunction<LowLevelFunctionEntryCallKind::Reverse>(
+                tape, false, curLLFByteDataPos, dataPtr, curLLFInfoDataPos, tokenPtr, dataSizePtr,
+#if CODI_VariableAdjointInterfaceInPrimalTapes
+                adjointVector
+#else
+                &vectorAccess
+#endif
+            );
+          } else CODI_Likely {
+            Identifier const lhsIdentifier = lhsIdentifiers[curStatementPos];
 
 #if CODI_VariableAdjointInterfaceInPrimalTapes
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
-              tape, lhsIdentifier, adjointVector->getVectorSize(), adjointVector->getAdjointVec(lhsIdentifier));
-          Gradient const lhsAdjoint{};
-          adjointVector->setLhsAdjoint(lhsIdentifier);
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
+                tape, lhsIdentifier, adjointVector->getVectorSize(), adjointVector->getAdjointVec(lhsIdentifier));
+            Gradient const lhsAdjoint{};
+            adjointVector->setLhsAdjoint(lhsIdentifier);
 #else
-          Gradient const lhsAdjoint = adjointVector[lhsIdentifier];
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
-              tape, lhsIdentifier, GradientTraits::dim<Gradient>(), GradientTraits::toArray(lhsAdjoint).data());
-          adjointVector[lhsIdentifier] = Gradient();
+            Gradient const lhsAdjoint = adjointVector[lhsIdentifier];
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluateListeners(
+                tape, lhsIdentifier, GradientTraits::dim<Gradient>(), GradientTraits::toArray(lhsAdjoint).data());
+            adjointVector[lhsIdentifier] = Gradient();
 #endif
-          EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
-                                                                                    primalVector[lhsIdentifier]);
+            EventSystem<PrimalValueReuseTape>::notifyStatementEvaluatePrimalListeners(tape, lhsIdentifier,
+                                                                                      primalVector[lhsIdentifier]);
 
-          primalVector[lhsIdentifier] = oldPrimalValues[curStatementPos];
+            primalVector[lhsIdentifier] = oldPrimalValues[curStatementPos];
 
-          StatementEvaluator::template callReverse<PrimalValueReuseTape>(
-              stmtEvalhandle[curStatementPos], primalVector, adjointVector, lhsAdjoint,
-              numberOfPassiveArguments[curStatementPos], curConstantPos, constantValues, curPassivePos, passiveValues,
-              curRhsIdentifiersPos, rhsIdentifiers);
+            StatementEvaluator::template callReverse<PrimalValueReuseTape>(
+                stmtEvalhandle[curStatementPos], primalVector, adjointVector, lhsAdjoint,
+                numberOfPassiveArguments[curStatementPos], curConstantPos, constantValues, curPassivePos, passiveValues,
+                curRhsIdentifiersPos, rhsIdentifiers);
+          }
         }
       }
 
@@ -236,8 +298,8 @@ namespace codi {
         };
 
         using StmtPosition = typename StatementData::Position;
-        StmtPosition startStmt = this->externalFunctionData.template extractPosition<StmtPosition>(this->getPosition());
-        StmtPosition endStmt = this->externalFunctionData.template extractPosition<StmtPosition>(pos);
+        StmtPosition startStmt = this->llfByteData.template extractPosition<StmtPosition>(this->getPosition());
+        StmtPosition endStmt = this->llfByteData.template extractPosition<StmtPosition>(pos);
 
         this->statementData.forEachReverse(startStmt, endStmt, clearFunc);
       }

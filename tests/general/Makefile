@@ -1,13 +1,13 @@
 #
 # CoDiPack, a Code Differentiation Package
 #
-# Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
-# Homepage: http://www.scicomp.uni-kl.de
+# Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+# Homepage: http://scicomp.rptu.de
 # Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
 #
 # Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
 #
-# This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+# This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
 #
 # CoDiPack is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -51,8 +51,21 @@ ifdef EIGEN_DIR
 else
   $(warning EIGEN_DIR not defined. Testing without Eigen.)
 endif
+ENZYME_DEFINE=
+ifdef ENZYME_DIR
+  CLANG_VERSION := 14
+  ENZYME_DEFINE = -DCODI_EnableEnzyme=true -flegacy-pass-manager -Xclang -load -Xclang $(ENZYME_DIR)/lib/ClangEnzyme-$(CLANG_VERSION).so -Xclang -plugin-arg-enzyme -Xclang -enzyme-globals-default-inactive=1
+else
+  $(warning ENZYME_DIR not defined. Testing without Enzyme.)
+endif
 
-FLAGS = -Wall -Werror=return-type -Wextra -pedantic -std=c++11 -DCODI_IgnoreInvalidJacobians=true -DCODI_EnableAssert=true -DCODI_ADWorkflowEvents -DCODI_PreaccEvents -DCODI_StatementEvents -DCODI_IndexEvents -fopenmp -I$(INCLUDE_DIR) $(CODI_INCLUDE) $(EIGEN_DEFINE) -DCODI_ChunkSize=32 -DCODI_SmallChunkSize=32
+FLAGS = -Wall -Werror=return-type -Wextra -pedantic -std=c++11 -DCODI_IgnoreInvalidJacobians=true -DCODI_EnableAssert=true -DCODI_ADWorkflowEvents -DCODI_PreaccEvents -DCODI_StatementEvents -DCODI_IndexEvents -I$(INCLUDE_DIR) $(CODI_INCLUDE) $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_ChunkSize=32 -DCODI_SmallChunkSize=32
+
+ifeq ($(WARNINGS_AS_ERRORS), no)
+  FLAGS := $(FLAGS) # add nothing
+else
+  FLAGS := $(FLAGS) -Werror
+endif
 
 ifeq ($(OPT), yes)
   CXX_FLAGS := -O3 $(FLAGS)
@@ -70,6 +83,7 @@ endif
 TEST_FILES   = $(wildcard $(TEST_DIR)/test**.hpp)
 TEST_FILES  += $(wildcard $(TEST_DIR)/**/test**.hpp)
 TEST_FILES  += $(wildcard $(TEST_DIR)/**/**/test**.hpp)
+TEST_FILES  += $(wildcard $(TEST_DIR)/**/**/**/test**.hpp)
 
 #list all dependency files in BUILD_DIR
 DEP_FILES   = $(wildcard $(BUILD_DIR)/**.d)
@@ -118,10 +132,6 @@ $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp
 	$(CXX) $(CXX_FLAGS) $< -c -o $@
 	@$(CXX) $(CXX_FLAGS) $< -MM -MP -MT $@ -MF $@.d
 
-$(BUILD_DIR)/%.exe :
-	@mkdir -p $(@D)
-	$(CXX) $(CXX_FLAGS) $^ -o $@
-
 # Update rule for dependency on TESTS parameter
 CREATE_CONFID := $(shell mkdir -p $(BUILD_DIR) && touch -a $(CONFID))
 
@@ -157,7 +167,10 @@ $(BUILD_DIR)/allTests.hpp: $(INCLUDE_DIR)/tests/allTests.hpp $(BUILD_DIR)/conf.d
 
 # output dependencies and rule
 $(BUILD_DIR)/listAllNames.o : $(BUILD_DIR)/allTests.hpp
+
 $(BUILD_DIR)/compare.exe : $(BUILD_DIR)/compare.o $(BUILD_DIR)/compareFiles.o $(BUILD_DIR)/listAllNames.o
+	@mkdir -p $(@D)
+	$(CXX) $(CXX_FLAGS) $^ -o $@
 
 
 .PHONY: output

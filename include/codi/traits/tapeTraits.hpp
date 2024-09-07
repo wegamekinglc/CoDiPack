@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -47,6 +47,12 @@ namespace codi {
   template<typename T_Real, typename T_Gradient>
   struct ForwardEvaluation;
 
+  template<typename T_Real, typename T_Tag>
+  struct TagTapeForward;
+
+  template<typename T_Real, typename T_Tag>
+  struct TagTapeReverse;
+
   /// Traits for everything that can be a CoDiPack tape usually the template argument of codi::ActiveType.
   /// Possible types are codi::JacobianLinearTape, codi::ForwardEvaluation, codi::PrimalValueReuseTape, etc..
   namespace TapeTraits {
@@ -56,8 +62,20 @@ namespace codi {
     /// @{
 
     /// If the tape inherits from ForwardEvaluation.
+    template<typename Tape, typename = void>
+    struct IsForwardTape : std::false_type {};
+
+#ifndef DOXYGEN_DISABLE
     template<typename Tape>
-    using IsForwardTape = std::is_base_of<ForwardEvaluation<typename Tape::Real, typename Tape::Gradient>, Tape>;
+    struct IsForwardTape<
+        Tape, typename enable_if_base_of<ForwardEvaluation<typename Tape::Real, typename Tape::Gradient>, Tape>::type>
+        : std::true_type {};
+
+    template<typename Tape>
+    struct IsForwardTape<
+        Tape, typename enable_if_base_of<TagTapeForward<typename Tape::Real, typename Tape::Tag>, Tape>::type>
+        : std::true_type {};
+#endif
 
 #if CODI_IS_CPP14
     /// Value entry of IsForwardTape
@@ -70,8 +88,15 @@ namespace codi {
     using EnableIfForwardTape = typename std::enable_if<IsForwardTape<Tape>::value>::type;
 
     /// If the tape inherits from PrimalValueBaseTape.
+    template<typename Tape, typename = void>
+    struct IsPrimalValueTape : std::false_type {};
+
+#ifndef DOXYGEN_DISABLE
     template<typename Tape>
-    using IsPrimalValueTape = std::is_base_of<PrimalValueBaseTape<typename Tape::TapeTypes, Tape>, Tape>;
+    struct IsPrimalValueTape<
+        Tape, typename enable_if_base_of<PrimalValueBaseTape<typename Tape::TapeTypes, Tape>, Tape>::type>
+        : std::true_type {};
+#endif
 
 #if CODI_IS_CPP14
     /// Value entry of IsPrimalValueTape
@@ -84,8 +109,15 @@ namespace codi {
     using EnableIfPrimalValueTape = typename std::enable_if<IsPrimalValueTape<Tape>::value>::type;
 
     /// If the tape inherits from JacobianBaseTape.
+    template<typename Tape, typename = void>
+    struct IsJacobianTape : std::false_type {};
+
+#ifndef DOXYGEN_DISABLE
     template<typename Tape>
-    using IsJacobianTape = std::is_base_of<JacobianBaseTape<typename Tape::TapeTypes, Tape>, Tape>;
+    struct IsJacobianTape<Tape,
+                          typename enable_if_base_of<JacobianBaseTape<typename Tape::TapeTypes, Tape>, Tape>::type>
+        : std::true_type {};
+#endif
 
 #if CODI_IS_CPP14
     /// Value entry of IsJacobianTape
@@ -97,9 +129,21 @@ namespace codi {
     template<typename Tape>
     using EnableIfJacobianTape = typename std::enable_if<IsJacobianTape<Tape>::value>::type;
 
+    template<typename Tape, typename = void>
+    struct IsReverseTape : std::false_type {};
+
+#ifndef DOXYGEN_DISABLE
     /// If the tape inherits either from JacobianBaseTape or PrimalValueBaseTape.
     template<typename Tape>
-    using IsReverseTape = std::integral_constant<bool, IsJacobianTape<Tape>::value || IsPrimalValueTape<Tape>::value>;
+    struct IsReverseTape<Tape,
+                         typename std::enable_if<IsJacobianTape<Tape>::value || IsPrimalValueTape<Tape>::value>::type>
+        : std::true_type {};
+
+    template<typename Tape>
+    struct IsReverseTape<
+        Tape, typename enable_if_base_of<TagTapeReverse<typename Tape::Real, typename Tape::Tag>, Tape>::type>
+        : std::true_type {};
+#endif
 
 #if CODI_IS_CPP14
     /// Value entry of IsReverseTape

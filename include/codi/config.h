@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,7 +37,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <limits>
+
 #include "misc/exceptions.hpp"
+#include "tools/cuda/cudaFunctionAttributes.hpp"
 
 /** @file */
 
@@ -52,9 +55,9 @@ namespace codi {
   /**
    * @brief CoDiPack - Code Differentiation Package
    *
-   * Web: https://www.scicomp.uni-kl.de/software/codi
+   * Web: https://scicomp.rptu.de/software/codi
    * Git: https://github.com/scicompkl/codipack
-   * Doc: https://www.scicomp.uni-kl.de/codi
+   * Doc: https://scicomp.rptu.de/codi
    */
   struct Namespace {};
 
@@ -62,8 +65,26 @@ namespace codi {
   namespace Config {
 
     /*******************************************************************************/
+    /// @name General compiler attributes.
+    /// @{
+
+/// See codi::Config::HasCpp20.
+#define CODI_HasCpp20 __cplusplus >= 202002L
+    /// If CoDiPack is compiled with C++20.
+    bool constexpr HasCpp20 = CODI_HasCpp20;
+
+    /// @}
+    /*******************************************************************************/
     /// @name Type and compile time value declarations
     /// @{
+
+#ifndef CODI_ByteDataChunkSize
+  /// See codi::Config::ByteDataChunkSize.
+  #define CODI_ByteDataChunkSize 4194304
+#endif
+    /// Default size of byte chunks used in ChunkedData in reverse tape implementations.
+    size_t constexpr ByteDataChunkSize = CODI_ByteDataChunkSize;
+#undef CODI_ByteDataChunkSize
 
 #ifndef CODI_ChunkSize
   /// See codi::Config::ChunkSize.
@@ -73,14 +94,36 @@ namespace codi {
     size_t constexpr ChunkSize = CODI_ChunkSize;
 #undef CODI_ChunkSize
 
+    /// Size store type for a low level function.
+    using LowLevelFunctionDataSize = uint16_t;
+
+    /// Maximum data size of a low level function.
+    size_t constexpr LowLevelFunctionDataSizeMax = std::numeric_limits<LowLevelFunctionDataSize>::max();
+
+    static_assert(LowLevelFunctionDataSizeMax <= ByteDataChunkSize,
+                  "Low level function data size is larger than the "
+                  "maximum size of a byte data chunk. Fix: Increase 'ByteDataChunkSize'.");
+
+    /// Token type for low level functions in the tapes.
+    using LowLevelFunctionToken = uint16_t;
+
+    /// Maximum number of low level functions.
+    size_t constexpr LowLevelFunctionTokenMaxSize = std::numeric_limits<LowLevelFunctionToken>::max();
+
+    /// Invalid low level function token.
+    size_t constexpr LowLevelFunctionTokenInvalid = std::numeric_limits<LowLevelFunctionToken>::max();
+
     /// Type for the number of arguments in statements.
     using ArgumentSize = uint8_t;
 
     /// Maximum number of arguments in a statement.
-    size_t constexpr MaxArgumentSize = 254;
+    size_t constexpr MaxArgumentSize = 253;
 
     /// Tag for statements that are inputs. Used in linear index management context.
     size_t constexpr StatementInputTag = 255;
+
+    /// Statement tag for low level functions.
+    size_t constexpr StatementLowLevelFunctionTag = 254;
 
 #ifndef CODI_SmallChunkSize
   /// See codi::Config::SmallChunkSize.
@@ -160,6 +203,14 @@ namespace codi {
     /// Warn about implicit conversions in the code.
     bool constexpr ImplicitConversionWarning = CODI_ImplicitConversionWarning;
 #undef CODI_ImplicitConversionWarning
+
+#ifndef CODI_ImplicitTagConversion
+  /// See codi::Config::ImplicitTagConversion.
+  #define CODI_ImplicitTagConversion false
+#endif
+    /// Enables the implicit conversion of tag data to its tag.
+    bool constexpr ImplicitTagConversion = CODI_ImplicitTagConversion;
+    // Do not undefine.
 
 #ifndef CODI_IgnoreIntelNoInlineWarning
   /// See codi::Config::IgnoreIntelNoInlineWarning
@@ -289,6 +340,14 @@ namespace codi {
     bool constexpr EnableEigen = CODI_EnableEigen;
     // Do not undefine
 
+#ifndef CODI_EnableEnzyme
+  /// See codi::Config::EnableEnzyme.
+  #define CODI_EnableEnzyme false
+#endif
+    /// Add Enzyme specific functionality.
+    bool constexpr EnableEnzyme = CODI_EnableEnzyme;
+    // Do not undefine.
+
 #ifndef CODI_EnableMPI
   /// See codi::Config::EnableMPI.
   #define CODI_EnableMPI false
@@ -320,6 +379,28 @@ namespace codi {
     /*******************************************************************************/
     /// @name Macro definitions
     /// @{
+
+/// Attributes for all CoDiPack functions.
+#define CODI_FunctionAttributes CODI_CUDAFunctionAttributes
+
+#ifndef CODI_AnnotateBranchLikelihood
+  /// See codi::Config::AnnotateBranchLikelihood.
+  #define CODI_AnnotateBranchLikelihood CODI_HasCpp20
+#endif
+#if CODI_AnnotateBranchLikelihood
+  /// Declare likely evaluation of an execution path.
+  #define CODI_Likely [[likely]]
+  /// Declare unlikely evaluation of an execution path.
+  #define CODI_Unlikely [[unlikely]]
+#else
+  /// Declare likely evaluation of an execution path.
+  #define CODI_Likely   /* empty */
+  /// Declare unlikely evaluation of an execution path.
+  #define CODI_Unlikely /* empty */
+#endif
+    /// Annotate branches with likely or unlikely, e.g., for if and else.
+    bool constexpr AnnotateBranchLikelihood = CODI_AnnotateBranchLikelihood;
+#undef CODI_AnnotateBranchLikelihood
 
 #ifndef CODI_AvoidedInlines
   /// See codi::Config::AvoidedInlines.
@@ -361,16 +442,21 @@ namespace codi {
 #endif
 #if CODI_ForcedInlines
   #if defined(__INTEL_COMPILER) | defined(_MSC_VER)
-    #define CODI_INLINE __forceinline
+    #define CODI_INLINE CODI_FunctionAttributes __forceinline
+    #define CODI_INLINE_NO_FA __forceinline
   #elif defined(__GNUC__)
-    #define CODI_INLINE inline __attribute__((always_inline))
+    #define CODI_INLINE CODI_FunctionAttributes inline __attribute__((always_inline))
+    #define CODI_INLINE_NO_FA inline __attribute__((always_inline))
   #else
     #warning Could not determine compiler for forced inline definitions. Using inline.
-    #define CODI_INLINE inline
+    #define CODI_INLINE CODI_FunctionAttributes inline
+    #define CODI_INLINE_NO_FA inline
   #endif
 #else
   /// See codi::Config::ForcedInlines.
-  #define CODI_INLINE inline
+  #define CODI_INLINE CODI_FunctionAttributes inline
+  /// See codi::Config::ForcedInlines.
+  #define CODI_INLINE_NO_FA inline
 #endif
     /// Force inlining instead of using the heuristics from the compiler.
     bool constexpr ForcedInlines = CODI_ForcedInlines;

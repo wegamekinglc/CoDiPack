@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,6 +38,7 @@
 #include "mutexInterface.hpp"
 #include "readWriteMutex.hpp"
 #include "staticThreadLocalPointerInterface.hpp"
+#include "synchronizationInterface.hpp"
 #include "threadInformationInterface.hpp"
 
 /** \copydoc codi::Namespace */
@@ -59,9 +60,11 @@ namespace codi {
    * @tparam T_Mutex                     Mutex implementation used by the toolbox. See codi::MutexInterface.
    * @tparam T_StaticThreadLocalPointer  Static thread-local pointer implementation used by the toolbox.
    *                                     See codi::StaticThreadLocalPointerInterface.
+   * @tparam T_Synchronization           Synchronization facalities that comply with the toolbox.
+   *                                     See codi::SynchronizationInterface.
    */
   template<typename T_ThreadInformation, template<typename> class T_Atomic, typename T_Mutex,
-           template<typename, typename> class T_StaticThreadLocalPointer>
+           template<typename, typename> class T_StaticThreadLocalPointer, typename T_Synchronization>
   struct ParallelToolbox {
     public:
       /// See codi::ParallelToolbox.
@@ -75,6 +78,8 @@ namespace codi {
       using StaticThreadLocalPointer = CODI_DD(CODI_T(T_StaticThreadLocalPointer<Type, Owner>),
                                                CODI_T(StaticThreadLocalPointerInterface<Type, Owner, CODI_ANY>));
 
+      using Synchronization = CODI_DD(T_Synchronization, DefaultSynchronization);   ///< See codi::ParallelToolbox.
+
       using Lock = codi::Lock<Mutex>;                                               ///< See codi::Lock.
       using ReadWriteMutex = codi::ReadWriteMutex<ThreadInformation, Atomic<int>>;  ///< See codi::ReadWriteMutex.
       using LockForRead = codi::LockForRead<ReadWriteMutex>;                        ///< See codi::LockForRead.
@@ -84,6 +89,7 @@ namespace codi {
 #if CODI_IDE
   /// Helper for IDE code completion.
   using CODI_DEFAULT_PARALLEL_TOOLBOX =
-      ParallelToolbox<CODI_DEFAULT_ATOMIC, MutexInterface, CODI_DEFAULT_STATIC_THREAD_LOCAL_POINTER>;
+      ParallelToolbox<DefaultThreadInformation, CODI_DEFAULT_ATOMIC, MutexInterface,
+                      CODI_DEFAULT_STATIC_THREAD_LOCAL_POINTER, DefaultSynchronization>;
 #endif
 }

@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ namespace codi {
 
   /// Disable unused warnings for an arbitrary number of arguments.
   template<typename... Args>
-  void CODI_UNUSED(Args const&...) {}
+  CODI_INLINE void CODI_UNUSED(Args const&...) {}
 
 /// Used in a constexpr context, where using CODI_UNUSED spoils the constexpr.
 #define CODI_UNUSED_ARG(arg) /* arg */
@@ -119,6 +119,7 @@ namespace codi {
 #if CODI_IDE
   #define CODI_STATIC_ASSERT(cond, message) /* Do not check in IDE mode */
 #else
+  /// Static assert in CoDiPack.
   #define CODI_STATIC_ASSERT(cond, message) static_assert(cond, message)
 #endif
 

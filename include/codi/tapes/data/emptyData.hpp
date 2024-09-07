@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -65,6 +65,14 @@ namespace codi {
       /// \copydoc DataInterface::pushData
       CODI_INLINE void pushData() {}
 
+      /// \copydoc DataInterface::getDataPointers
+      CODI_INLINE void getDataPointers() {}
+
+      /// \copydoc DataInterface::addDataSize
+      CODI_INLINE void addDataSize(size_t size) {
+        CODI_UNUSED(size);
+      }
+
       /// \copydoc DataInterface::reserveItems
       CODI_INLINE InternalPosHandle reserveItems(size_t const& items) {
         CODI_UNUSED(items);
@@ -121,11 +129,6 @@ namespace codi {
         return Position();
       }
 
-      /// \copybrief DataInterface::getDataPointers
-      CODI_INLINE void getDataPointers(InternalPosHandle const& startPos) {
-        CODI_UNUSED(startPos);
-      }
-
       /*******************************************************************************/
       /// @name Misc functions
 
@@ -156,7 +159,8 @@ namespace codi {
 
       /// \copydoc DataInterface::evaluateForward <br><br>
       /// Implementation: Calls the function object with all arguments except start and end.
-      template<typename FunctionObject, typename... Args>
+      /// This is a terminating DataInterface, therefore selectedDepth can be ignored.
+      template<int selectedDepth = -1, typename FunctionObject, typename... Args>
       CODI_INLINE void evaluateForward(Position const& start, Position const& end, FunctionObject function,
                                        Args&&... args) {
         CODI_UNUSED(start, end);
@@ -165,7 +169,8 @@ namespace codi {
 
       /// \copydoc DataInterface::evaluateReverse <br><br>
       /// Implementation: Calls the function object with all arguments except start and end.
-      template<typename FunctionObject, typename... Args>
+      /// This is a terminating DataInterface, therefore selectedDepth can be ignored.
+      template<int selectedDepth = -1, typename FunctionObject, typename... Args>
       CODI_INLINE void evaluateReverse(Position const& start, Position const& end, FunctionObject function,
                                        Args&&... args) {
         CODI_UNUSED(start, end);

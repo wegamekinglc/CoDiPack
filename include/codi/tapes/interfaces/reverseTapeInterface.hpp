@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,6 +41,7 @@
 #include "../../misc/macros.hpp"
 #include "../../traits/expressionTraits.hpp"
 #include "../../traits/realTraits.hpp"
+#include "../misc/tapeParameters.hpp"
 #include "../misc/tapeValues.hpp"
 #include "gradientAccessTapeInterface.hpp"
 #include "internalStatementRecordingTapeInterface.hpp"
@@ -105,15 +106,32 @@ namespace codi {
       /*******************************************************************************/
       /// @name Reversal
 
-      void evaluate();  ///< Perform a full reverse evaluation of the tape.
+      /**
+       * @brief Perform a full reverse evaluation of the tape.
+       *
+       * Automatic adjoints management involves bounds checking, resizing, and locking, see AdjointsManagement for
+       * details.
+       */
+      void evaluate(AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
 
       /*******************************************************************************/
       /// @name Reset
 
-      void clearAdjoints();                   ///< Clear all adjoint values, that is, set them to zero.
-      void reset(bool resetAdjoints = true);  ///< Reset the tape to the initial state for a fresh recording. See
-                                              ///< \ref Tutorial_05_Repeated_tape_recordings for remarks on repeated
-                                              ///< tape recording in CoDiPack.
+      /**
+       * @brief Clear all adjoint values, that is, set them to zero.
+       *
+       * Automatic adjoints management involves locking, see AdjointsManagement for details.
+       */
+      void clearAdjoints(AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
+
+      /**
+       * @brief Reset the tape to the initial state for a fresh recording.
+       *
+       * See \ref Tutorial_05_Repeated_tape_recordings for remarks on repeated tape recording in CoDiPack.
+       *
+       * Automatic adjoints management involves locking, see AdjointsManagement for details.
+       */
+      void reset(bool resetAdjoints = true, AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
 
       /*******************************************************************************/
       /// @name Tape information

@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -83,16 +83,25 @@ namespace codi {
       using Base::clearAdjoints;
 
       /// \copydoc codi::PositionalEvaluationTapeInterface::clearAdjoints
-      void clearAdjoints(Position const& start, Position const& end) {
+      void clearAdjoints(Position const& start, Position const& end,
+                         AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) {
+        if (AdjointsManagement::Automatic == adjointsManagement) {
+          this->adjoints.beginUse();
+        }
+
         using IndexPosition = CODI_DD(typename IndexManager::Position, int);
-        IndexPosition startIndex = this->externalFunctionData.template extractPosition<IndexPosition>(start);
-        IndexPosition endIndex = this->externalFunctionData.template extractPosition<IndexPosition>(end);
+        IndexPosition startIndex = this->llfByteData.template extractPosition<IndexPosition>(start);
+        IndexPosition endIndex = this->llfByteData.template extractPosition<IndexPosition>(end);
 
         startIndex = std::min(startIndex, (IndexPosition)this->adjoints.size() - 1);
         endIndex = std::min(endIndex, (IndexPosition)this->adjoints.size() - 1);
 
         for (IndexPosition curPos = endIndex + 1; curPos <= startIndex; curPos += 1) {
           this->adjoints[curPos] = Gradient();
+        }
+
+        if (AdjointsManagement::Automatic == adjointsManagement) {
+          this->adjoints.endUse();
         }
       }
 
@@ -106,11 +115,16 @@ namespace codi {
         this->statementData.pushData(numberOfArguments);
       }
 
-      /// \copydoc codi::JacobianBaseTape::internalEvaluateForward_Step3_EvalStatements
+      /// \copydoc codi::JacobianBaseTape::internalEvaluateForward_EvalStatements
       template<typename Adjoint>
-      CODI_INLINE static void internalEvaluateForward_Step3_EvalStatements(
+      CODI_INLINE static void internalEvaluateForward_EvalStatements(
           /* data from call */
           JacobianLinearTape& tape, Adjoint* adjointVector,
+          /* data from low level function byte data vector */
+          size_t& curLLFByteDataPos, size_t const& endLLFByteDataPos, char* dataPtr,
+          /* data from low level function info data vector */
+          size_t& curLLFInfoDataPos, size_t const& endLLFInfoDataPos, Config::LowLevelFunctionToken* const tokenPtr,
+          Config::LowLevelFunctionDataSize* const dataSizePtr,
           /* data from jacobian vector */
           size_t& curJacobianPos, size_t const& endJacobianPos, Real const* const rhsJacobians,
           Identifier const* const rhsIdentifiers,
@@ -118,16 +132,23 @@ namespace codi {
           size_t& curStmtPos, size_t const& endStmtPos, Config::ArgumentSize const* const numberOfJacobians,
           /* data from index handler */
           size_t const& startAdjointPos, size_t const& endAdjointPos) {
-        CODI_UNUSED(endJacobianPos, endStmtPos);
+        CODI_UNUSED(endJacobianPos, endStmtPos, endLLFByteDataPos, endLLFInfoDataPos);
+
+        typename Base::template VectorAccess<Adjoint> vectorAccess(adjointVector);
 
         size_t curAdjointPos = startAdjointPos;
 
-        while (curAdjointPos < endAdjointPos) {
+        while (curAdjointPos < endAdjointPos) CODI_Likely {
           curAdjointPos += 1;
 
           Config::ArgumentSize const argsSize = numberOfJacobians[curStmtPos];
 
-          if (Config::StatementInputTag != argsSize) {
+          if (Config::StatementLowLevelFunctionTag == argsSize) CODI_Unlikely {
+            Base::template callLowLevelFunction<LowLevelFunctionEntryCallKind::Forward>(
+                tape, true, curLLFByteDataPos, dataPtr, curLLFInfoDataPos, tokenPtr, dataSizePtr, &vectorAccess);
+          } else if (Config::StatementInputTag == argsSize) CODI_Unlikely {
+            // Do nothing.
+          } else CODI_Likely {
             Adjoint lhsAdjoint = Adjoint();
             Base::incrementTangents(adjointVector, lhsAdjoint, argsSize, curJacobianPos, rhsJacobians, rhsIdentifiers);
             adjointVector[curAdjointPos] = lhsAdjoint;
@@ -140,11 +161,16 @@ namespace codi {
         }
       }
 
-      /// \copydoc codi::JacobianBaseTape::internalEvaluateReverse_Step3_EvalStatements
+      /// \copydoc codi::JacobianBaseTape::internalEvaluateReverse_EvalStatements
       template<typename Adjoint>
-      CODI_INLINE static void internalEvaluateReverse_Step3_EvalStatements(
+      CODI_INLINE static void internalEvaluateReverse_EvalStatements(
           /* data from call */
           JacobianLinearTape& tape, Adjoint* adjointVector,
+          /* data from low level function byte data vector */
+          size_t& curLLFByteDataPos, size_t const& endLLFByteDataPos, char* dataPtr,
+          /* data from low level function info data vector */
+          size_t& curLLFInfoDataPos, size_t const& endLLFInfoDataPos, Config::LowLevelFunctionToken* const tokenPtr,
+          Config::LowLevelFunctionDataSize* const dataSizePtr,
           /* data from jacobianData */
           size_t& curJacobianPos, size_t const& endJacobianPos, Real const* const rhsJacobians,
           Identifier const* const rhsIdentifiers,
@@ -152,22 +178,29 @@ namespace codi {
           size_t& curStmtPos, size_t const& endStmtPos, Config::ArgumentSize const* const numberOfJacobians,
           /* data from index handler */
           size_t const& startAdjointPos, size_t const& endAdjointPos) {
-        CODI_UNUSED(endJacobianPos, endStmtPos);
+        CODI_UNUSED(endJacobianPos, endStmtPos, endLLFByteDataPos, endLLFInfoDataPos);
+
+        typename Base::template VectorAccess<Adjoint> vectorAccess(adjointVector);
 
         size_t curAdjointPos = startAdjointPos;
 
-        while (curAdjointPos > endAdjointPos) {
+        while (curAdjointPos > endAdjointPos) CODI_Likely {
           curStmtPos -= 1;
           Config::ArgumentSize const argsSize = numberOfJacobians[curStmtPos];
 
-          if (Config::StatementInputTag != argsSize) {
+          if (Config::StatementLowLevelFunctionTag == argsSize) CODI_Unlikely {
+            Base::template callLowLevelFunction<LowLevelFunctionEntryCallKind::Reverse>(
+                tape, false, curLLFByteDataPos, dataPtr, curLLFInfoDataPos, tokenPtr, dataSizePtr, &vectorAccess);
+          } else if (Config::StatementInputTag == argsSize) CODI_Unlikely {
+            // Do nothing.
+          } else CODI_Likely {
             // No input value, perform regular statement evaluation.
 
             Adjoint const lhsAdjoint = adjointVector[curAdjointPos];  // We do not use the zero index, decrement of
                                                                       // curAdjointPos at the end of the loop.
 
             EventSystem<JacobianLinearTape>::notifyStatementEvaluateListeners(
-                tape, curAdjointPos, GradientTraits::dim<Adjoint>(), GradientTraits::toArray(lhsAdjoint).data());
+                tape, (Identifier)curAdjointPos, GradientTraits::dim<Adjoint>(), GradientTraits::toArray(lhsAdjoint).data());
 
             if (Config::ReversalZeroesAdjoints) {
               adjointVector[curAdjointPos] = Adjoint();

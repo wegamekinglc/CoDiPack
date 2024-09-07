@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@ struct TestTwoArgumentExpr1 : public TestInterface {
   public:
     NAME("TwoArgumentExpr1")
     IN(2)
-    OUT(32)
+    OUT(29)
     POINTS(25) =  // clang-format off
     {
       {-10.0,   -10},
@@ -96,15 +96,12 @@ struct TestTwoArgumentExpr1 : public TestInterface {
       y[21] = pow(x[0], x[1]);   // R x R
       y[22] = pow(5.00, x[1]);   // R x R
       y[23] = pow(x[0], 5.00);   // R x R
-      y[24] = copysign(x[0], x[1]);   // R x R
-      y[25] = copysign(5.00, x[1]);   // R x R
-      y[26] = copysign(x[0], 5.00);   // R x R
-      y[27] = copysignf(x[0], x[1]);  // R x R
-      y[28] = copysignf(5.00, x[1]);  // R x R
-      y[29] = copysignf(x[0], 5.00);  // R x R
+      y[24] = copysign(x[0], x[1]);  // R x R
+      y[25] = copysign(5.00, x[1]);  // R x R
+      y[26] = copysign(x[0], 5.00);  // R x R
 
-      y[30] = x[0];
-      y[31] = x[1];
-      swap(y[30], y[31]);  // R x R
+      y[27] = x[0];
+      y[28] = x[1];
+      swap(y[27], y[28]);  // R x R
     }
 };

@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -80,7 +80,8 @@ namespace codi {
    *
    * \section adjointMgmt Adjoint vector management
    * Tapes manage their internal adjoint vector automatically. This covers all routines offered by the tape itself. This
-   * interface exposes parts of this adjoint vector management for external algorithms that build on top of a tape.
+   * interface exposes parts of this adjoint vector management for external algorithms that build on top of a tape. See
+   * also codi::AdjointsManagement.
    *
    * The functions resizeAdjointVector() and deleteAdjointVector() allow for memory optimizations. resizeAdjointVector()
    * can be used to guarantee a sufficient adjoint vector size for subsequent access without bounds checking.
@@ -149,6 +150,13 @@ namespace codi {
       /// @name Interface: Misc
 
       void swap(DataManagementTapeInterface& other);  ///< Swap all data with an other tape.
-      void resetHard();  ///< Delete everything and return to the state after construction, as far as possible.
+
+      /**
+       * @brief Delete everything and return to the state after construction, as far as possible.
+       *
+       * Unlike other reset methods, this methods involves resizing the adjoint vector, this is not optional. Therefore,
+       * no codi::AdjointsManagement parameter is offered.
+       */
+      void resetHard();
   };
 }

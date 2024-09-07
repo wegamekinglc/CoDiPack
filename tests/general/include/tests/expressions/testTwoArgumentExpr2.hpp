@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@ struct TestTwoArgumentExpr2 : public TestInterface {
   public:
     NAME("TwoArgumentExpr2")
     IN(2)
-    OUT(12)
+    OUT(15)
     POINTS(18) =  // clang-format off
     {
       {-10.0,   -10},
@@ -75,5 +75,8 @@ struct TestTwoArgumentExpr2 : public TestInterface {
       y[9] = hypot(x[0], x[1]);      // R x R \ {0, 0})
       y[10] = hypot(5.0, x[1]);      // R x R \ {0, 0})
       y[11] = hypot(x[0], 5.0);      // R x R \ {0, 0})
+      y[12] = fmod(x[0], x[1]);      // R x (R \ {0})
+      y[13] = fmod(5.00, x[1]);      // R x (R \ {0})
+      y[14] = fmod(x[0], 5.00);      // R x (R \ {0})
     }
 };

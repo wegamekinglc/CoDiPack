@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,6 +57,7 @@
 #include "io/testSwap.hpp"
 #include "tools/helpers/testEigenLinearSystemSolverHandler.hpp"
 #include "tools/helpers/testEigenSparseLinearSystemSolverHandler.hpp"
+#include "tools/helpers/testEnzymeExternalFunctionHelper.hpp"
 #include "tools/helpers/testExternalFunctionHelper.hpp"
 #include "tools/helpers/testExternalFunctionHelperPassive.hpp"
 #include "tools/helpers/testPreaccumulation.hpp"
@@ -67,5 +68,6 @@
 #include "tools/helpers/testPreaccumulationZeroJacobi.hpp"
 #include "tools/helpers/testReset.hpp"
 #include "tools/helpers/testStatementPushHelper.hpp"
+#include "tools/lowlevelFunctions/linearAlgebra/testMatrixMatrixMultiplication.hpp"
 #include "tools/testReferenceActiveType.hpp"
 #include "traits/testNumericLimits.hpp"

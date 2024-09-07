@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,7 +39,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "../config.h"
+#include "../tools/cuda/cudaFunctionAttributes.hpp"
 
 /** \copydoc codi::Namespace */
 namespace codi {
@@ -56,21 +56,16 @@ namespace codi {
    * @param[in]            file  The file were the function is defined.
    * @param[in]            line  The line in the file were the assert is defined.
    */
-  inline void checkAndOutputAssert(bool const condition, char const* conditionString, char const* function,
-                                   char const* file, int line) {
+  CODI_CUDAFunctionAttributes inline void checkAndOutputAssert(bool const condition, char const* conditionString,
+                                                               char const* function, char const* file, int line) {
+#if !CODI_CUDA
     if (!condition) {
       std::cerr << "codiAssertion failed: " << conditionString << " in function " << function << " at " << file << ":"
                 << line << std::endl;
       abort();
     }
+#endif
   }
-
-/**
- * @brief Generates an exception.
- *
- * @param ...  Arguments for a printf like output and format.
- */
-#define CODI_EXCEPTION(...) outputException(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
   /**
    * @brief Prints the positions and the message of the exception.
@@ -81,10 +76,15 @@ namespace codi {
    * @param[in] function  Name of the function from which the exception is generated.
    * @param[in]     file  File where the exception was generated.
    * @param[in]     line  Line inside the file where the exception was generated.
+   * @param[in]  warning  If this is a warning or an exception.
    * @param[in]  message  The exception message and the arguments for the formatting in the message.
    */
-  inline void outputException(char const function[], char const file[], int const line, char const* message, ...) {
-    fprintf(stderr, "Error in function %s (%s:%d)\nThe message is: ", function, file, line);
+  CODI_CUDAFunctionAttributes inline void outputExceptionOrWarning(char const function[], char const file[],
+                                                                   int const line, bool warning, char const* message,
+                                                                   ...) {
+#if !CODI_CUDA
+    char const* kind = (warning) ? "Warning" : "Error";
+    fprintf(stderr, "%s in function %s (%s:%d)\nThe message is: ", kind, function, file, line);
 
     va_list vl;
     va_start(vl, message);
@@ -92,8 +92,25 @@ namespace codi {
     va_end(vl);
 
     fprintf(stderr, "\n");
-    exit(-1);
+    if (!warning) {
+      exit(-1);
+    }
+#endif
   }
+
+/**
+ * @brief Generates an exception.
+ *
+ * @param ...  Arguments for a printf like output and format.
+ */
+#define CODI_EXCEPTION(...) ::codi::outputExceptionOrWarning(__func__, __FILE__, __LINE__, false, __VA_ARGS__)
+
+/**
+ * @brief Generates a warning.
+ *
+ * @param ...  Arguments for a printf like output and format.
+ */
+#define CODI_WARNING(...) ::codi::outputExceptionOrWarning(__func__, __FILE__, __LINE__, true, __VA_ARGS__)
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
   #define DEPRECATE(foo, msg) foo __attribute__((deprecated(msg)))

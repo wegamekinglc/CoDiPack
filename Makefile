@@ -1,13 +1,13 @@
 #
 # CoDiPack, a Code Differentiation Package
 #
-# Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
-# Homepage: http://www.scicomp.uni-kl.de
+# Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+# Homepage: http://scicomp.rptu.de
 # Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
 #
 # Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
 #
-# This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+# This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
 #
 # CoDiPack is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -34,20 +34,28 @@
 #
 
 # names of the basic directories
-BUILD_DIR    = build
-DOC_DIR      = documentation
-EXAMPLE_DIR  = $(DOC_DIR)/examples
-TUTORIAL_DIR = $(DOC_DIR)/tutorials
-DEVELOPER_DIR = $(DOC_DIR)/developer
+BUILD_DIR      = build
+DEFINITION_DIR = definitions
+DOC_DIR        = documentation
+EXAMPLE_DIR    = $(DOC_DIR)/examples
+TUTORIAL_DIR   = $(DOC_DIR)/tutorials
+DEVELOPER_DIR  = $(DOC_DIR)/developer
 
 EIGEN_DEFINE=
 ifdef EIGEN_DIR
   EIGEN_DEFINE=-I$(EIGEN_DIR) -DCODI_EnableEigen=true
 endif
 
+ENZYME_DEFINE=
+ifdef ENZYME_DIR
+  CLANG_VERSION := 14
+  ENZYME_DEFINE = -DCODI_EnableEnzyme=true -flegacy-pass-manager -Xclang -load -Xclang $(ENZYME_DIR)/lib/ClangEnzyme-$(CLANG_VERSION).so -Xclang -plugin-arg-enzyme -Xclang -enzyme-globals-default-inactive=1
+endif
+
 #list all source files in DOC_DIR
 TUTORIAL_FILES  = $(wildcard $(TUTORIAL_DIR)/*.cpp)
 EXAMPLE_FILES  = $(wildcard $(EXAMPLE_DIR)/*.cpp) $(wildcard $(DEVELOPER_DIR)/*.cpp)
+DEFINITION_FILES  = $(wildcard $(DEFINITION_DIR)/*/*/*.hpp)
 
 #list all dependency files in BUILD_DIR
 DEP_FILES   = $(wildcard $(BUILD_DIR)/*.d)
@@ -61,7 +69,7 @@ CODI_VERSION = $(MAJOR_VERSION).$(MINOR_VERSION).$(BUILD_VERSION)
 
 CODI_DIR := .
 
-FLAGS = -Wall -Werror=return-type -pedantic -DCODI_OptIgnoreInvalidJacobians=true -DCODI_EnableAssert=true -I$(CODI_DIR)/include -fopenmp $(EIGEN_DEFINE) -DCODI_StatementEvents
+FLAGS = -Wall -Werror=return-type -pedantic -DCODI_OptIgnoreInvalidJacobians=true -DCODI_EnableAssert=true -I$(CODI_DIR)/include -fopenmp $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_StatementEvents
 
 ifndef CLANG_FORMAT
   CLANG_FORMAT := clang-format
@@ -84,7 +92,7 @@ ifeq ($(MPI), yes)
   ifdef MEDI_DIR
     FLAGS += -I$(MEDI_DIR)/include -I$(MEDI_DIR)/src
   else
-    $(error Error: 'MEDI_DIR' is not defined for the MPI build. You can get it at 'https://www.scicomp.uni-kl.de/software/medi/' or with 'git clone https://github.com/SciCompKL/MeDiPack.git')
+    $(error Error: 'MEDI_DIR' is not defined for the MPI build. You can get it at 'https://scicomp.rptu.de/software/medi/' or with 'git clone https://github.com/SciCompKL/MeDiPack.git')
   endif
 endif
 ifeq ($(OPENMP), yes)
@@ -94,7 +102,7 @@ ifeq ($(OPENMP), yes)
     ifdef OPDI_DIR
       FLAGS += -I$(OPDI_DIR)/include
     else
-      $(error Error: 'OPDI_DIR' is not defined for the OpDiLib build. You can get it at 'https://www.scicomp.uni-kl.de/software/opdi/' or with 'git clone https://github.com/SciCompKL/OpDiLib.git')
+      $(error Error: 'OPDI_DIR' is not defined for the OpDiLib build. You can get it at 'https://scicomp.rptu.de/software/opdi/' or with 'git clone https://github.com/SciCompKL/OpDiLib.git')
     endif
   endif
 else
@@ -113,8 +121,10 @@ else
   CXX := $(CXX)
 endif
 
+
 TUTORIALS = $(patsubst %.cpp,$(BUILD_DIR)/%.exe,$(TUTORIAL_FILES))
 EXAMPLES = $(patsubst %.cpp,$(BUILD_DIR)/%.exe,$(EXAMPLE_FILES))
+GENERATED = $(patsubst $(DEFINITION_DIR)/%.hpp,include/codi/tools/%.hpp,$(DEFINITION_FILES))
 
 # set default rule
 all: tutorials examples
@@ -127,6 +137,14 @@ $(BUILD_DIR)/%.exe : %.cpp $(BUILD_DIR)/compiler_flags
 tutorials: $(TUTORIALS)
 
 examples: $(EXAMPLES)
+
+
+include/codi/tools/%.hpp: $(DEFINITION_DIR)/%.hpp
+	@mkdir -p $(@D)
+	python $(EXT_FUNC_GENERATOR_DIR)/externalfunctionparser/externalfunctionparser.py $< -o $@
+	$(CLANG_FORMAT) -i $@
+
+generate: $(GENERATED)
 
 doc:
 	@mkdir -p $(BUILD_DIR)

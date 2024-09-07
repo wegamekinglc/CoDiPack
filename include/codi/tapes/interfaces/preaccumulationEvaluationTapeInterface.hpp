@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,6 +37,7 @@
 #include "../../config.h"
 #include "../../misc/macros.hpp"
 #include "../data/position.hpp"
+#include "../misc/tapeParameters.hpp"
 #include "forwardEvaluationTapeInterface.hpp"
 #include "manualStatementPushTapeInterface.hpp"
 #include "positionalEvaluationTapeInterface.hpp"
@@ -76,12 +77,24 @@ namespace codi {
       /*******************************************************************************/
       /// @name Interface definition
 
-      /// Perform a tape evaluation but restore the state afterwards such that it is the same as when the evaluation
-      /// started. It hast to hold start >= end.
-      void evaluateKeepState(Position const& start, Position const& end);
+      /**
+       * @brief Perform a tape evaluation but restore the state afterwards such that it is the same as when the
+       * evaluation started. It hast to hold start >= end.
+       *
+       * Automatic adjoints management involves bounds checking, resizing, and locking, see AdjointsManagement for
+       * details.
+       */
+      void evaluateKeepState(Position const& start, Position const& end,
+                             AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
 
-      /// Perform a tape evaluation but restore the state afterwards such that it is the same as when the evaluation
-      /// started. It hast to hold start <= end.
-      void evaluateForwardKeepState(Position const& start, Position const& end);
+      /**
+       * @brief Perform a tape evaluation but restore the state afterwards such that it is the same as when the
+       * evaluation started. It hast to hold start <= end.
+       *
+       * Automatic adjoints management involves bounds checking, resizing, and locking, see AdjointsManagement for
+       * details.
+       */
+      void evaluateForwardKeepState(Position const& start, Position const& end,
+                                    AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
   };
 }

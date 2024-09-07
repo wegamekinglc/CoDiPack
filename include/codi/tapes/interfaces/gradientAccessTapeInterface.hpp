@@ -1,13 +1,13 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2023 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
- * Homepage: http://www.scicomp.uni-kl.de
+ * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
  * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
  *
- * This file is part of CoDiPack (http://www.scicomp.uni-kl.de/software/codi).
+ * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
  * CoDiPack is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@
 
 #include "../../config.h"
 #include "../../misc/macros.hpp"
+#include "../misc/tapeParameters.hpp"
 
 /** \copydoc codi::Namespace */
 namespace codi {
@@ -59,8 +60,6 @@ namespace codi {
    * (documentation/examples/gradientAccessTapeInterface.cpp):
    * \snippet examples/gradientAccessTapeInterface.cpp Gradient Access
    *
-   * Implementation hint: Unless instructed otherwise, the size of the gradient vector should be checked before access.
-   *
    * @tparam T_Gradient    The gradient type of a tape, usually chosen as ActiveType::Gradient.
    * @tparam T_Identifier  The adjoint/tangent identification of a tape, usually chosen as ActiveType::Identifier.
    */
@@ -71,46 +70,43 @@ namespace codi {
       using Gradient = CODI_DD(T_Gradient, double);   ///< See GradientAccessTapeInterface.
       using Identifier = CODI_DD(T_Identifier, int);  ///< See GradientAccessTapeInterface.
 
-      /// Policies for resizing the adjoint vector.
-      enum class ResizingPolicy {
-        CheckAndAdapt,    ///< Check the size of the adjoint vector, enlarge it if needed.
-        NoBoundsChecking  ///< Do not check the bounds, do not resize.
-      };
-
       /*******************************************************************************/
       /// @name Interface definition
 
       /**
        * @brief Set the gradient.
        *
-       * Implicitly resizes the adjoint vector if there is no entry with the given identifier yet, unless specified
-       * otherwise via resizingPolicy. In this case, the user has to guarantee that the adjoint vector is large
-       * enough, see DataManagementTapeInterface::resizeAdjointVector.
+       * Automatic adjoints management involves bounds checking, resizing, and locking, see AdjointsManagement for
+       * details.
        */
       void setGradient(Identifier const& identifier, Gradient const& gradient,
-                       ResizingPolicy resizingPolicy = ResizingPolicy::CheckAndAdapt);
+                       AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
 
       /**
        * @brief Set the gradient.
        *
-       * Returns a reference to adjoints[0] if no adjoint variable with the given identifier exists.
+       * Automatic adjoints management involves bounds checking and locking. If no adjoint variable with the given
+       * identifier exists, a reference to adjoints[0] is returned. See AdjointsManagement for details.
        */
-      Gradient const& getGradient(Identifier const& identifier) const;
+      Gradient const& getGradient(Identifier const& identifier,
+                                  AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) const;
 
       /**
        * @brief Reference access to gradient.
        *
-       * Implicitly resizes the adjoint vector if there is no entry with the given identifier yet, unless specified
-       * otherwise via resizingPolicy. In this case, the user has to guarantee that the adjoint vector is large
-       * enough, see DataManagementTapeInterface::resizeAdjointVector.
+       * Automatic adjoints management involves bounds checking, resizing, and locking, see AdjointsManagement for
+       * details.
        */
-      Gradient& gradient(Identifier const& identifier, ResizingPolicy resizingPolicy = ResizingPolicy::CheckAndAdapt);
+      Gradient& gradient(Identifier const& identifier,
+                         AdjointsManagement adjointsManagement = AdjointsManagement::Automatic);
 
       /**
        * @brief Constant reference access to gradient.
        *
-       * Returns a reference to adjoints[0] if no adjoint variable with the given identifier exists.
+       * Automatic adjoints management involves bounds checking and locking. If no adjoint variable with the given
+       * identifier exists, a reference to adjoints[0] is returned. See AdjointsManagement for details.
        */
-      Gradient const& gradient(Identifier const& identifier) const;
+      Gradient const& gradient(Identifier const& identifier,
+                               AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) const;
   };
 }
