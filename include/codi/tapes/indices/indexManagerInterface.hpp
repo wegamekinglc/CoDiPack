@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -102,6 +102,9 @@ namespace codi {
       /// @return true if new indices have been generated internally.
       template<typename Tape>
       bool assignIndex(Index& index);
+
+      /// @brief Update the largest generated index.
+      void updateLargestCreatedIndex(Index const& index);
 
       /// @brief Call on registering input values.
       /// @return true if new indices have been generated internally.

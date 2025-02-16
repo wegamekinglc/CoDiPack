@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -40,7 +40,7 @@ struct TestExtFunctionCall : public TestInterface {
     NAME("ExtFunctionCall")
     IN(2)
     OUT(1)
-    POINTS(1) = {{2.0, 3.0}};
+    POINTS(1) = { {2.0, 3.0} };
 
     template<typename Number>
     static void func(Number* x, Number* y) {

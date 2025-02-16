@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -75,6 +75,9 @@ namespace codi {
       /// The type of the arguments is the type of the result of a getValue call on the expressions.
       template<typename ArgA, typename ArgB>
       static CODI_INLINE Real gradientB(ArgA const& argA, ArgB const& argB, Real const& result);
+
+      /// Get the math symbol of the binary operation. E.g. `+` for operators and `pow()` for functions.
+      static CODI_INLINE std::string getMathRep();
   };
 
   /**
@@ -143,6 +146,11 @@ namespace codi {
       CODI_INLINE void forEachLink(TraversalLogic<Logic>& logic, Args&&... args) const {
         logic.cast().template link<0>(argA, *this, std::forward<Args>(args)...);
         logic.cast().template link<1>(argB, *this, std::forward<Args>(args)...);
+      }
+
+      /// \copydoc codi::BinaryOperation::getMathRep
+      CODI_INLINE std::string getMathRep() const {
+        return Operation::getMathRep();
       }
 
       /// \copydoc codi::NodeInterface::forEachLinkConstExpr

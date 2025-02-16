@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -38,7 +38,7 @@ struct TestOneArgumentExpr2 : public TestInterface {
   public:
     NAME("OneArgumentExpr2")
     IN(1)
-    OUT(4)
+    OUT(7)
     POINTS(20) =  // clang-format off
     {
       {  0.5000},
@@ -69,5 +69,8 @@ struct TestOneArgumentExpr2 : public TestInterface {
       y[1] = log10(x[0]);   // (0, inf)
       y[2] = sqrt(x[0]);    // [0, inf)
       y[3] = tgamma(x[0]);  // R currently only defined for positive arguments
+      y[4] = acosh(x[0]);   // (1, inf)
+      y[5] = log1p(x[0]);   // (0, inf)
+      y[6] = log2(x[0]);    // (0, inf)
     }
 };

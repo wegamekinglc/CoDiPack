@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -169,7 +169,11 @@ namespace codi {
         Base::swap(other);
       }
       void resetHard() {}            ///< Do nothing.
-      void deleteAdjointVector() {}  ///< Do nothing.
+
+      void deleteAdjointVector()   {} ///< Do nothing.
+      void resizeAdjointVector()   {} ///< Do nothing.
+      void beginUseAdjointVector() {} ///< Do nothing.
+      void endUseAdjointVector()   {} ///< Do nothing.
 
       /// @}
       /*******************************************************************************/
@@ -208,28 +212,38 @@ namespace codi {
       /// @{
 
       /// Verify tag.
-      void setGradient(Identifier const& identifier, Gradient const& gradient) {
-        CODI_UNUSED(gradient);
+      void setGradient(Identifier const& identifier, Gradient const& gradient,
+                       AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) {
+        CODI_UNUSED(gradient, adjointsManagement);
 
         Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
       }
 
       /// Verify tag.
-      Gradient const& getGradient(Identifier const& identifier) const {
-        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+      Gradient const& getGradient(Identifier const& identifier,
+                                  AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) const {
+        CODI_UNUSED(adjointsManagement);
 
-        return tempGradient;
-      }
-
-      /// Verify tag.
-      Gradient& gradient(Identifier const& identifier) {
         Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
 
         return tempGradient;
       }
 
       /// Verify tag.
-      Gradient const& gradient(Identifier const& identifier) const {
+      Gradient& gradient(Identifier const& identifier,
+                         AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) {
+        CODI_UNUSED(adjointsManagement);
+
+        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+
+        return tempGradient;
+      }
+
+      /// Verify tag.
+      Gradient const& gradient(Identifier const& identifier,
+                               AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) const {
+        CODI_UNUSED(adjointsManagement);
+
         Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
 
         return tempGradient;
@@ -255,8 +269,6 @@ namespace codi {
 
       /// Verify tag.
       bool isIdentifierActive(Identifier const& index) const {
-        Base::verifyTag(index.tag);
-
         return index.tag != Base::PassiveTag;
       }
 

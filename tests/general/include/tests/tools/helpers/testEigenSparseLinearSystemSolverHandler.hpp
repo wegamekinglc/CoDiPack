@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -45,7 +45,7 @@ struct TestEigenSparseLinearSystemSolverHandler : public TestInterface {
     NAME("EigenSparseLinearSystemSolverHandler")
     IN(5)
     OUT(2)
-    POINTS(1) = {{1.0, 2.0, 4.0, 20.0, 10.0}};
+    POINTS(1) = { {1.0, 2.0, 4.0, 20.0, 10.0} };
 
 #if CODI_EnableEigen
     template<typename T>

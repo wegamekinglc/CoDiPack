@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -92,7 +92,6 @@ namespace codi {
 
       Index reservedIndices;  ///< The largest index that is reserved and cannot be assigned to active AD variables.
       Index count;            ///< The current maximum index.
-
     public:
 
       /// Constructor
@@ -105,7 +104,10 @@ namespace codi {
       /// \copydoc IndexManagerInterface::addToTapeValues <br><br>
       /// Implementation: Adds maximum live indices.
       void addToTapeValues(TapeValues& values) const {
-        values.addLongEntry("Max. live indices", getLargestCreatedIndex());
+        TapeValues::LocalReductionOperation constexpr operation =
+            NeedsStaticStorage ? TapeValues::LocalReductionOperation::Max : TapeValues::LocalReductionOperation::Sum;
+
+        values.addLongEntry("Max. live indices", getLargestCreatedIndex(), operation);
       }
 
       /// \copydoc IndexManagerInterface::freeIndex <br><br>
@@ -161,6 +163,11 @@ namespace codi {
       /// 2. the largest created index coincides with the largest assigned index.
       CODI_INLINE Index getLargestCreatedIndex() const {
         return count;
+      }
+
+      /// \copydoc IndexManagerInterface::updateLargestCreatedIndex
+      CODI_INLINE void updateLargestCreatedIndex(Index const& index) {
+        count = index;
       }
 
       /// @}

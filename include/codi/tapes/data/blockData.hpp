@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -201,8 +201,8 @@ namespace codi {
         double memoryAlloc = (double)allocedSize * (double)entrySize;
 
         values.addUnsignedLongEntry("Total number", dataEntries);
-        values.addDoubleEntry("Memory used", memoryUsed, true, false);
-        values.addDoubleEntry("Memory allocated", memoryAlloc, false, true);
+        values.addDoubleEntry("Memory used", memoryUsed, TapeValues::LocalReductionOperation::Sum, true, false);
+        values.addDoubleEntry("Memory allocated", memoryAlloc, TapeValues::LocalReductionOperation::Sum, false, true);
       }
 
       /// \copydoc DataInterface::extractPosition

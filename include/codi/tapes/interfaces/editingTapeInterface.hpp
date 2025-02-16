@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -82,5 +82,10 @@ namespace codi {
       /// Copy the specified range of the source tape and append it to the end of this tape. It has to hold
       /// start <= end.
       void append(EditingTapeInterface& source, Position const& start, Position const& end);
+
+      /// @brief Modify the identifiers in an already recorded tape.
+      /// @tparam Func Callable void(Identifier&) for editing one identifier at a time.
+      template<typename Func>
+      void editIdentifiers(Func&& modifyIdentifier, Position const& start, Position const& end);
   };
 }

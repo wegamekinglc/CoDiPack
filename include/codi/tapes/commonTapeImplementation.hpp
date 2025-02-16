@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -47,6 +47,7 @@
 #include "data/position.hpp"
 #include "indices/indexManagerInterface.hpp"
 #include "interfaces/fullTapeInterface.hpp"
+#include "io/tapeReaderWriterInterface.hpp"
 #include "misc/externalFunction.hpp"
 #include "misc/lowLevelFunctionEntry.hpp"
 #include "misc/vectorAccessInterface.hpp"
@@ -592,6 +593,41 @@ namespace codi {
         Impl& impl = cast();
 
         impl.evaluateForward(impl.getZeroPosition(), impl.getPosition(), adjointsManagement);
+      }
+
+      /// @}
+      /*******************************************************************************/
+      /// @name Functions from ReadWriteTapeInterface
+      /// @{
+
+      /// \copydoc codi::ReadWriteTapeInterface::writeTape(codi::ReadWriteTapeInterface::WriterInterfaceUniquePtr)
+      template<typename Type>
+      void writeTape(std::unique_ptr<TapeWriterInterface<Type>> writer) {
+        Impl& impl = cast();
+        impl.writeTape(writer.get(), impl.getZeroPosition(), impl.getPosition());
+      }
+
+      /// \copydoc codi::ReadWriteTapeInterface::writeTape(codi::ReadWriteTapeInterface::WriterInterfaceUniquePtr,
+      /// codi:ReadWriteTapeInterface::Position const&, codi::ReadWriteTapeInterface::Position const&)
+      template<typename Type>
+      void writeTape(std::unique_ptr<TapeWriterInterface<Type>> writer, Position const& start, Position const& end) {
+        Impl& impl = cast();
+        impl.writeTape(writer.get(), start, end);
+      }
+
+      /// \copydoc codi::ReadWriteTapeInterface::writeTape(codi::ReadWriteTapeInterface::WriterInterface &)
+      template<typename Type>
+      void writeTape(codi::TapeWriterInterface<Type>& writeToFileRef) {
+        Impl& impl = cast();
+        impl.writeTape(&writeToFileRef, impl.getZeroPosition(), impl.getPosition());
+      }
+
+      /// \copydoc codi::ReadWriteTapeInterface::writeTape(codi::ReadWriteTapeInterface::WriterInterface &,
+      /// codi::ReadWriteTapeInterface::Position const&, codi::ReadWriteTapeInterface::Position const&)
+      template<typename Type>
+      void writeTape(codi::TapeWriterInterface<Type>& writeToFileRef, Position const& start, Position const& end) {
+        Impl& impl = cast();
+        impl.writeTape(&writeToFileRef, start, end);
       }
 
       /// @}

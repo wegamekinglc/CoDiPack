@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -92,6 +92,15 @@ namespace codi {
         HandleTyped<Tape> func = (HandleTyped<Tape>)h;
 
         func(std::forward<Args>(args)...);
+      }
+
+      /// \copydoc StatementEvaluatorInterface::getWriteInformation
+      template<typename Tape, typename... Args>
+      static WriteInfo getWriteInformation(Handle const& h, Args&&... args) {
+        CODI_UNUSED(h, args...);
+
+        CODI_EXCEPTION("ReverseStatementEvaluator does not support get write information calls.");
+        return WriteInfo();
       }
 
       /// \copydoc StatementEvaluatorInterface::createHandle

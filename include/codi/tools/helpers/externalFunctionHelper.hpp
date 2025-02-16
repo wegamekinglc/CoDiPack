@@ -1,7 +1,7 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2024 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
@@ -599,8 +599,11 @@ namespace codi {
           Synchronization::synchronize();
 
           // Push the delete handle on at most one thread's tape.
-          typename ExternalFunction<Tape>::DeleteFunction delFunc =
-              0 == ThreadInformation::getThreadId() ? EvalData::delFunc : nullptr;
+          typename ExternalFunction<Tape>::DeleteFunction delFunc = nullptr;
+          Synchronization::serialize([&]() {
+            delFunc = EvalData::delFunc;
+          });
+
           Type::getTape().pushExternalFunction(ExternalFunction<Tape>::create(
               EvalData::evalRevFuncStatic, data, delFunc, EvalData::evalForwFuncStatic, EvalData::evalPrimFuncStatic));
 
