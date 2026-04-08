@@ -46,6 +46,7 @@ struct SimpleTape : public codi::ReverseTapeInterface<double, double, int> {
     using Real = double;
     using Gradient = double;
     using Identifier = int;
+    using ActiveTypeTapeData = int;
 
 //! [Data stream - Type definition]
     using OperatorData = codi::ChunkedData<codi::Chunk1<OperatorCode>>;
@@ -176,17 +177,25 @@ struct SimpleTape : public codi::ReverseTapeInterface<double, double, int> {
 
     static bool constexpr AllowJacobianOptimization = false; // If certain operations can be hidden from the tape.
 
-//! [Identifiers - Initialization]
+//! [Identifiers - Initialization and handling]
     template<typename Real>
-    void initIdentifier(Real& value, Identifier& identifier) {
-      identifier = 0; // Initialize with zero we perform an online activity analysis.
+    void initTapeData(Real& value, ActiveTypeTapeData& data) {
+      data = 0; // Initialize with zero we perform an online activity analysis.
     }
 
     template<typename Real>
-    void destroyIdentifier(Real& value, Identifier& identifier) {
+    void destroyTapeData(Real& value, ActiveTypeTapeData& data) {
       // Do nothing: Identifiers are not reused.
     }
-//! [Identifiers - Initialization]
+
+    Identifier const& getIdentifier(ActiveTypeTapeData const& data) {
+      return data;
+    }
+
+    Identifier& getIdentifier(ActiveTypeTapeData& data) {
+      return data;
+    }
+//! [Identifiers - Initialization and handling]
 
 //! [Storing - Entry]
     template<typename Lhs, typename Rhs>
@@ -266,17 +275,17 @@ struct SimpleTape : public codi::ReverseTapeInterface<double, double, int> {
 
 //! [Storing - Unary operator]
     template<typename Arg, template<typename> class Op>
-    struct StoreOperator_Impl<codi::UnaryExpression<double, Arg, Op>> {
+    struct StoreOperator_Impl<codi::ComputeExpression<double, Op, Arg>> {
       public:
         static void store(
-            codi::UnaryExpression<double, Arg, Op> const& exp, SimpleTape& tape,
+            codi::ComputeExpression<double, Op, Arg> const& exp, SimpleTape& tape,
             double& resultValue, int& resultIdentifier, bool copy)
         {
 
           double argValue;
           int argIdentifier;
 
-          tape.storeOperator(exp.arg, argValue, argIdentifier, false);
+          tape.storeOperator(exp.template getLink<0>(), argValue, argIdentifier, false);
 
           if (argIdentifier != 0) {
             // Active argument or branch => store the operator.
@@ -302,10 +311,10 @@ struct SimpleTape : public codi::ReverseTapeInterface<double, double, int> {
 
 //! [Storing - Other operators]
     template<typename Arg1, typename Arg2, template<typename> class Op>
-    struct StoreOperator_Impl<codi::BinaryExpression<double, Arg1, Arg2, Op>> {
+    struct StoreOperator_Impl<codi::ComputeExpression<double, Op, Arg1, Arg2>> {
       public:
         static void store(
-            codi::BinaryExpression<double, Arg1, Arg2, Op> const& exp, SimpleTape& tape,
+            codi::ComputeExpression<double, Op, Arg1, Arg2> const& exp, SimpleTape& tape,
             double& resultValue, int& resultIdentifier, bool copy)
         {
 
@@ -314,8 +323,8 @@ struct SimpleTape : public codi::ReverseTapeInterface<double, double, int> {
           int argAIdentifier;
           int argBIdentifier;
 
-          tape.storeOperator(exp.argA, argAValue, argAIdentifier, false);
-          tape.storeOperator(exp.argB, argBValue, argBIdentifier, false);
+          tape.storeOperator(exp.template getLink<0>(), argAValue, argAIdentifier, false);
+          tape.storeOperator(exp.template getLink<1>(), argBValue, argBIdentifier, false);
 
           if (argAIdentifier != 0 || argBIdentifier != 0) {
             // Active argument or branch => store the operator.

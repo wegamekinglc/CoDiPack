@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -40,6 +40,15 @@
 
 /** \copydoc codi::Namespace */
 namespace codi {
+
+  struct EmptyPosition;
+
+  template<typename T_Real, typename T_Gradient, typename T_Identifier, typename T_Position,
+           typename T_ActiveTypeTapeData>
+  struct FullTapeInterface;
+
+  template<typename T_Tape>
+  struct ActiveType;
 
   /// Disable unused warnings for an arbitrary number of arguments.
   template<typename... Args>
@@ -57,12 +66,6 @@ namespace codi {
 
 /// Conversion macro.
 #define CODI_TO_STRING(expression) CODI_TO_STRING2(expression)
-
-/// Check for CPP 14 standard.
-#define CODI_IS_CPP14 (201402L <= __cplusplus)
-
-/// Check for CPP 17 standard.
-#define CODI_IS_CPP17 (201703L <= __cplusplus)
 
 /*******************************************************************************/
 /** @name Default template type declarations
@@ -97,6 +100,9 @@ namespace codi {
 /// Used in default declarations of expression templates.
 #define CODI_ANY int
 
+/// Like CODI_ANY but with a specific type.
+#define CODI_ANY_T(Type) Type
+
 #ifndef DOXYGEN_DISABLE
   /// Placeholer for the implementation of an interface.
   struct ImplProxy {};
@@ -111,11 +117,12 @@ namespace codi {
 #define CODI_T(...) CODI_TEMPLATE(__VA_ARGS__)
 
 /// Used in interface declarations for types that have to be defined in the specializations.
-#define CODI_UNDEFINED void
+#define CODI_UNDEFINED char
 
 /// Used in interface declarations for variables that have to be defined in the specializations.
 #define CODI_UNDEFINED_VALUE false
 
+/// Static assert definition for CoDiPack. Not evaluated in IDE mode.
 #if CODI_IDE
   #define CODI_STATIC_ASSERT(cond, message) /* Do not check in IDE mode */
 #else
@@ -128,16 +135,20 @@ namespace codi {
   struct ActiveTypeProxy {
       using Real = double;
       using Identifier = int;
+      using TapeData = int;
   };
 
   /// Declaration of the default full tape interface.
-  #define CODI_DEFAULT_TAPE FullTapeInterface<double, double, int, EmptyPosition>
+  #define CODI_DEFAULT_TAPE FullTapeInterface<double, double, int, EmptyPosition, int>
 
   /// Declaration of a default parallel tape interface.
   #define CODI_DEFAULT_PARALLEL_TAPE CODI_UNION<CODI_DEFAULT_TAPE, EditingTapeInterface<EmptyPosition>>
 
   /// Declaration of the default lhs expression interface.
   #define CODI_DEFAULT_LHS_EXPRESSION LhsExpressionInterface<double, double, CODI_DEFAULT_TAPE, CODI_ANY>
+
+  /// Declaration of the default lhs expression interface.
+  #define CODI_DEFAULT_ACTIVE_TYPE ActiveType<CODI_DEFAULT_TAPE>
 #endif
 
 #ifndef DOXYGEN_DISABLE

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -45,6 +45,10 @@
   #error Please define the name of the operator.
 #endif
 
+#ifndef RETURN
+  #error Please define the return type of the operator.
+#endif
+
 // Create a correct include environment for viewing and programming in an IDE.
 #ifndef OPERATOR
   #define PROXY_OUTER
@@ -53,14 +57,15 @@
   #include "../../misc/macros.hpp"
   #include "../expressionInterface.hpp"
   #define OPERATOR ==
+  #define RETURN bool
 
 namespace codi {
 #endif
 
   /// Function overload for operator OPERATOR.
   template<typename Real, typename ArgA, typename ArgB>
-  CODI_INLINE bool operator OPERATOR(ExpressionInterface<Real, ArgA> const& argA,
-                                     ExpressionInterface<Real, ArgB> const& argB) {
+  CODI_INLINE RETURN operator OPERATOR(ExpressionInterface<Real, ArgA> const& argA,
+                                       ExpressionInterface<Real, ArgB> const& argB) {
     return RealTraits::getPassiveValue(argA.cast()) OPERATOR RealTraits::getPassiveValue(argB.cast());
   }
 
@@ -92,3 +97,4 @@ namespace codi {
 #endif
 
 #undef OPERATOR
+#undef RETURN

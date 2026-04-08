@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -56,6 +56,17 @@ namespace codi {
   template<typename T_Tape>
   struct StaticContextActiveType;
 
+  namespace RealTraits {
+    template<typename T_Real, typename>
+    struct AggregatedTypeTraits;
+  }
+
+  template<typename T_Real>
+  struct EmptyOperation;
+
+  template<typename T_Real, template<typename> class T_Operation, typename... T_ArgExprs>
+  struct ComputeExpression;
+
   /// Traits for everything that can be an expression e.g. codi::RealReverse, a + b, etc..
   namespace ExpressionTraits {
 
@@ -63,28 +74,82 @@ namespace codi {
     /// @name Expression traits.
     /// @{
 
-    /// Validates if the active type results of two expressions are the same or compatible. `void` results are
-    /// interpreted as the active type result of a constant expression.
-    template<typename ResultA, typename ResultB, typename = void>
-    struct ValidateResultImpl {
+    /**
+     *  @brief Validates if the AD logic of an arbitrary amount of expressions are the same or compatible. `void`
+     * results are interpreted as the AD logic of a constant expression.
+     *
+     *  Implementation proxy for AD logic validation. See the specializations for details.
+     */
+    template<typename... Logic>
+    struct ValidateADLogicImpl;
+
+    /// Validation for zero arguments defines no logic.
+    template<>
+    struct ValidateADLogicImpl<> {
+      public:
+
+        /// The resulting AD logic type of an expression.
+        using ADLogic = void;
+    };
+
+    /// Validation for one arguments just defines the input logic as the valid one.
+    template<typename Logic>
+    struct ValidateADLogicImpl<Logic> {
+      public:
+
+        /// The resulting AD logic type of an expression.
+        using ADLogic = Logic;
+    };
+
+    /// Validation for two arguments. Validates if one of the two is void or both are the same.
+    template<typename LogicA, typename LogicB>
+    struct ValidateADLogicImpl<LogicA, LogicB> {
       private:
-        static bool constexpr isAVoid = std::is_same<void, ResultA>::value;
-        static bool constexpr isBVoid = std::is_same<void, ResultB>::value;
+        static bool constexpr isAVoid = std::is_same<void, LogicA>::value;
+        static bool constexpr isBVoid = std::is_same<void, LogicB>::value;
         static bool constexpr isBothVoid = isAVoid & isBVoid;
-        static bool constexpr isBothSame = std::is_same<ResultA, ResultB>::value;
+        static bool constexpr isBothSame = std::is_same<LogicA, LogicB>::value;
 
         // Either one can be void (aka. constant value) but not both otherwise both need to be the same.
-        CODI_STATIC_ASSERT((!isBothVoid) & (!isAVoid | !isBVoid | isBothSame), "Result types need to be the same.");
+        CODI_STATIC_ASSERT((!isBothVoid) & (!isAVoid | !isBVoid | isBothSame), "AD logic types need to be the same.");
 
       public:
 
-        /// The resulting active type of an expression.
-        using ActiveResult = typename std::conditional<isBVoid, ResultA, ResultB>::type;
+        /// The resulting AD logic type of an expression.
+        using ADLogic = typename std::conditional<isBVoid, LogicA, LogicB>::type;
     };
 
-    /// \copydoc ValidateResultImpl
-    template<typename ResultA, typename ResultB>
-    using ValidateResult = ValidateResultImpl<ResultA, ResultB>;
+    /// Validation for an arbitrary number of arguments. Gets the logic of the remainder and validates this with LogicA.
+    template<typename LogicA, typename... LogicOther>
+    struct ValidateADLogicImpl<LogicA, LogicOther...> {
+      public:
+
+        /// The resulting AD logic type of an expression.
+        using ADLogic =
+            typename ValidateADLogicImpl<LogicA, typename ValidateADLogicImpl<LogicOther...>::ADLogic>::ADLogic;
+    };
+
+    /// \copybrief ValidateADLogicImpl
+    template<typename... Results>
+    using ValidateADLogic = ValidateADLogicImpl<Results...>;
+
+    /// Create a CoDiPack active type that can capture an expression result. The ADLogic type definition in the
+    /// expression is usually the tape type.
+    /// @tparam T_Real Real value of the expression.
+    /// @tparam T_Tape ADLogic of the expression.
+    /// @tparam T_isStatic If a static context active type should be used.
+    template<typename T_Real, typename T_Tape, bool T_isStatic = false, typename = void>
+    struct ActiveResultImpl {
+        using Real = CODI_DD(T_Real, CODI_ANY);  ///< See ActiveResultImpl.
+        using Tape = CODI_DD(T_Tape, CODI_ANY);  ///< See ActiveResultImpl.
+
+        /// The resulting active type of an expression.
+        using ActiveResult = CODI_ANY;
+    };
+
+    /// \copydoc ActiveResultImpl
+    template<typename Real, typename Tape, bool isStatic = false>
+    using ActiveResult = typename ActiveResultImpl<Real, Tape, isStatic>::ActiveResult;
 
     /// @}
     /*******************************************************************************/
@@ -101,11 +166,9 @@ namespace codi {
         : std::true_type {};
 #endif
 
-#if CODI_IS_CPP14
     /// Value entry of IsExpression
     template<typename Expr>
     bool constexpr isExpression = IsExpression<Expr>::value;
-#endif
 
     /// Enable if wrapper for IsExpression
     template<typename Expr, typename T = void>
@@ -126,11 +189,9 @@ namespace codi {
     struct IsLhsExpression<StaticContextActiveType<Tape>> : std::true_type {};
 #endif
 
-#if CODI_IS_CPP14
     /// Value entry of IsLhsExpression
     template<typename Expr>
     bool constexpr isLhsExpression = IsLhsExpression<Expr>::value;
-#endif
 
     /// Enable if wrapper for IsLhsExpression
     template<typename Expr, typename T = void>
@@ -145,15 +206,30 @@ namespace codi {
     struct IsConstantExpression<ConstantExpression<Real, ConversionOperator>> : std::true_type {};
 #endif
 
-#if CODI_IS_CPP14
     template<typename Expr>
     /// Value entry of IsConstantExpression
     bool constexpr isConstantExpression = IsConstantExpression<Expr>::value;
-#endif
 
     /// Enable if wrapper for IsConstantExpression
     template<typename Expr, typename T = void>
     using EnableIfConstantExpression = typename std::enable_if<IsConstantExpression<Expr>::value, T>::type;
+
+    /// If the expression inherits from EmptyExpression. Is either std::false_type or std::true_type
+    template<typename Expr>
+    struct IsEmptyExpression : std::false_type {};
+
+#ifndef DOXYGEN_DISABLE
+    template<typename Real>
+    struct IsEmptyExpression<ComputeExpression<Real, EmptyOperation>> : std::true_type {};
+#endif
+
+    template<typename Expr>
+    /// Value entry of IsEmptyExpression
+    bool constexpr isEmptyExpression = IsEmptyExpression<Expr>::value;
+
+    /// Enable if wrapper for IsEmptyExpression
+    template<typename Expr, typename T = void>
+    using EnableIfEmptyExpression = typename std::enable_if<IsEmptyExpression<Expr>::value, T>::type;
 
     /// If the expression inherits from StaticContextActiveType. Is either std::false_type or std::true_type
     template<typename Expr>
@@ -164,11 +240,9 @@ namespace codi {
     struct IsStaticContextActiveType<StaticContextActiveType<Tape>> : std::true_type {};
 #endif
 
-#if CODI_IS_CPP14
     /// Value entry of IsStaticContextActiveType
     template<typename Expr>
     bool constexpr isStaticContextActiveType = IsStaticContextActiveType<Expr>::value;
-#endif
 
     /// Enable if wrapper for IsStaticContextActiveType
     template<typename Expr, typename T = void>
@@ -198,11 +272,9 @@ namespace codi {
         static size_t constexpr value = Base::template eval<Expr>();
     };
 
-#if CODI_IS_CPP14
     /// Value entry of NumberOfActiveTypeArguments
     template<typename Expr>
     bool constexpr numberOfActiveTypeArguments = NumberOfActiveTypeArguments<Expr>::value;
-#endif
 
     /// Counts the number of types that inherit from ConstantExpression in the expression.
     template<typename Expr>
@@ -216,7 +288,7 @@ namespace codi {
         /// \copydoc CompileTimeTraversalLogic::leaf()
         template<typename Node, typename = EnableIfConstantExpression<Node>>
         CODI_INLINE static size_t constexpr leaf() {
-          return 1;
+          return ::codi::RealTraits::AggregatedTypeTraits<typename Node::Real, void>::Elements;
         }
         using CompileTimeTraversalLogic<size_t, NumberOfConstantTypeArguments>::leaf;
 
@@ -224,11 +296,9 @@ namespace codi {
         static size_t constexpr value = Base::template eval<Expr>();
     };
 
-#if CODI_IS_CPP14
     /// Value entry of NumberOfConstantTypeArguments
     template<typename Expr>
     bool constexpr numberOfConstantTypeArguments = NumberOfConstantTypeArguments<Expr>::value;
-#endif
 
     /// Counts the number of nodes in the expression.
     template<typename Expr>
@@ -245,11 +315,9 @@ namespace codi {
         static size_t constexpr value = NumberOfOperations::template eval<Expr>();
     };
 
-#if CODI_IS_CPP14
     /// Value entry of NumberOfOperations
     template<typename Expr>
     bool constexpr numberOfOperations = NumberOfOperations<Expr>::value;
-#endif
 
     /// @}
   }

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -71,14 +71,14 @@ namespace codi {
       using Tape = typename Type::Tape;
       using Position = typename Tape::Position;  ///< See PositionalEvaluationTapeInterface
 
-    protected:
+    private:
 
-      Tape& tape;  ///< Current tape for evaluations. Default: the Type's current tape.
+      Tape* tape;  ///< Current tape for evaluations. Default: the Type's current tape.
 
     public:
 
       /// Constructor
-      CustomAdjointVectorInterface() : tape(Type::getTape()) {}
+      CustomAdjointVectorInterface() : tape(&Type::getTape()) {}
 
       /// Destructor
       virtual ~CustomAdjointVectorInterface() {}
@@ -92,6 +92,17 @@ namespace codi {
 
       /// Delete the adjoint vector
       virtual void deleteAdjointVector() = 0;
+
+      /// True if the size for the adjoint vector is fixed. It will not be resized according to the largest identifier
+      /// of the tape.
+      virtual bool isAdjointSizeFixed() = 0;
+
+      /// Set a fixed size for the adjoint vector. It will no longer be resized to the largest identifier of the tape. A
+      /// size of 0 will disable the behavior.
+      virtual void resizeAdjointToFixedSize(size_t size) = 0;
+
+      /// Resize the adjoint vector to the largest identifier of the tape. This will remove any fixed size that is set.
+      virtual void resizeAdjointToTapeSize() = 0;
 
       /// \copydoc codi::PositionalEvaluationTapeInterface::evaluate()
       virtual void evaluate(Position const& start, Position const& end) = 0;
@@ -111,17 +122,22 @@ namespace codi {
 
       /// \copydoc codi::ReverseTapeInterface::evaluate()
       void evaluate() {
-        evaluate(tape.getPosition(), tape.getZeroPosition());
+        evaluate(tape->getPosition(), tape->getZeroPosition());
       }
 
       /// \copydoc codi::ForwardEvaluationTapeInterface::evaluateForward()
       void evaluateForward() {
-        evaluate(tape.getPosition(), tape.getZeroPosition());
+        evaluate(tape->getPosition(), tape->getZeroPosition());
       }
 
       /// Set the tape for the evaluations.
       void setTape(Tape& tape) {
-        this->tape = tape;
+        this->tape = &tape;
+      }
+
+      /// Get the tape for the evaluations.
+      Tape& getTape() {
+        return *this->tape;
       }
 
       /// @}
@@ -174,6 +190,11 @@ namespace codi {
       /// Last created adjoint interface.
       AdjointVectorAccess<Real, Identifier, Gradient*>* adjointInterface;
 
+      /// Fixed size for adjoint.
+      ///  - 0:            Used largest identifier for size of adjoint vector.
+      ///  - other values: Use this size for the adjoint vector.
+      size_t fixedAdjointSize = {};
+
     public:
 
       /// Constructor
@@ -204,11 +225,29 @@ namespace codi {
         adjointVector.shrink_to_fit();
       }
 
+      /// \copydoc codi::CustomAdjointVectorInterface::isAdjointSizeFixed()
+      bool isAdjointSizeFixed() {
+        return fixedAdjointSize != 0;
+      }
+
+      /// \copydoc codi::CustomAdjointVectorInterface::resizeAdjointToFixedSize()
+      void resizeAdjointToFixedSize(size_t size) {
+        fixedAdjointSize = size;
+        adjointVector.resize(size);
+        adjointVector.shrink_to_fit();
+      }
+
+      /// \copydoc codi::CustomAdjointVectorInterface::resizeAdjointToTapeSize();
+      void resizeAdjointToTapeSize() {
+        fixedAdjointSize = 0;
+        checkAdjointVectorSize();
+      }
+
       /// \copydoc codi::CustomAdjointVectorInterface::evaluate()
       void evaluate(Position const& start, Position const& end) {
         checkAdjointVectorSize();
 
-        Base::tape.evaluate(start, end, adjointVector.data());
+        Base::getTape().evaluate(start, end, adjointVector.data());
       }
       using Base::evaluate;
 
@@ -216,7 +255,7 @@ namespace codi {
       void evaluateForward(Position const& start, Position const& end) {
         checkAdjointVectorSize();
 
-        Base::tape.evaluateForward(start, end, adjointVector.data());
+        Base::getTape().evaluateForward(start, end, adjointVector.data());
       }
       using Base::evaluateForward;
 
@@ -282,8 +321,10 @@ namespace codi {
     private:
 
       void checkAdjointVectorSize() {
-        if (adjointVector.size() <= Base::tape.getParameter(TapeParameters::LargestIdentifier)) {
-          adjointVector.resize(Base::tape.getParameter(TapeParameters::LargestIdentifier) + 1);
+        if (0 == fixedAdjointSize) {  // Skip if fixed size is set
+          if (adjointVector.size() <= Base::getTape().getParameter(TapeParameters::LargestIdentifier)) {
+            adjointVector.resize(Base::getTape().getParameter(TapeParameters::LargestIdentifier) + 1);
+          }
         }
       }
   };

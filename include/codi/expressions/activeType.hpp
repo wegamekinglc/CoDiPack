@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -61,8 +61,8 @@ namespace codi {
       using typename Base::PassiveReal;  ///< See ActiveTypeBase.
       using typename Base::Real;         ///< See ActiveTypeBase.
 
-      using typename Base::ActiveResult;  ///< See ActiveTypeBase.
-      using typename Base::StoreAs;       ///< See ActiveTypeBase.
+      using typename Base::ADLogic;  ///< See ActiveTypeBase.
+      using typename Base::StoreAs;  ///< See ActiveTypeBase.
 
     private:
 
@@ -107,4 +107,16 @@ namespace codi {
   template<typename Tape>
   CODI_DD(Tape, CODI_DEFAULT_TAPE) ActiveType<Tape>::tape{};
   // clang-format on
+
+  /// Specialization of ActiveResultImpl for active types in a static context.
+  template<typename T_Real, typename T_Tape>
+  struct ExpressionTraits::ActiveResultImpl<T_Real, T_Tape, false> {
+    public:
+
+      using Real = CODI_DD(T_Real, CODI_ANY);  ///< See ExpressionTraits::ActiveResultImpl.
+      using Tape = CODI_DD(T_Tape, CODI_ANY);  ///< See ExpressionTraits::ActiveResultImpl.
+
+      /// The resulting active type of an expression.
+      using ActiveResult = ActiveType<Tape>;
+  };
 }

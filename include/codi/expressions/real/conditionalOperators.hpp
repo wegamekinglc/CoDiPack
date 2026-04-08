@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -47,29 +47,43 @@ namespace codi {
   /// @name Builtin binary comparison operators
   /// @{
 
+#define RETURN bool
 #define OPERATOR ==
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR !=
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR >
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR <
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR >=
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR <=
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR &&
 #include "conditionalBinaryOverloads.tpp"
 
+#define RETURN bool
 #define OPERATOR ||
 #include "conditionalBinaryOverloads.tpp"
+
+#if CODI_HasCpp20
+  #define RETURN std::partial_ordering
+  #define OPERATOR <=>
+  #include "conditionalBinaryOverloads.tpp"
+#endif
 
   /// @}
   /*******************************************************************************/

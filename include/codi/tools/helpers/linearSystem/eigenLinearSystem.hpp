@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -224,13 +224,13 @@ namespace codi {
 
       /// \copydoc codi::LinearSystemInterface::iterateDyadic
       template<typename Func>
-      void iterateDyadic(Func func, MatrixIdentifier* mat_id, VectorReal* x_v, VectorReal* b_b) {
+      void iterateDyadic(Func func, MatrixIdentifier* mat_id, VectorReal* b_b, VectorReal* x_v) {
         Index rows = mat_id->rows();
         Index cols = mat_id->cols();
 
         for (int i = 0; i < rows; i += 1) {
           for (int j = 0; j < cols; j += 1) {
-            func(mat_id->coeffRef(i, j), x_v->coeffRef(j), b_b->coeffRef(i));
+            func(mat_id->coeffRef(i, j), b_b->coeffRef(i), x_v->coeffRef(j));
           }
         }
       }
@@ -358,13 +358,13 @@ namespace codi {
 
       /// \copydoc LinearSystemInterface::iterateDyadic
       template<typename Func>
-      void iterateDyadic(Func func, MatrixIdentifier* mat_id, VectorReal* x_v, VectorReal* b_b) {
+      void iterateDyadic(Func func, MatrixIdentifier* mat_id, VectorReal* b_b, VectorReal* x_v) {
         Index outerSize = mat_id->outerSize();
 
         for (int k = 0; k < outerSize; ++k) {
           typename MatrixIdentifier::InnerIterator iterId(*mat_id, k);
           while (iterId) {
-            func(iterId.valueRef(), x_v->coeffRef(iterId.col()), b_b->coeffRef(iterId.row()));
+            func(iterId.valueRef(), b_b->coeffRef(iterId.row()), x_v->coeffRef(iterId.col()));
 
             ++iterId;
           }

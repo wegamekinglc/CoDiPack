@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -60,7 +60,8 @@ namespace codi {
   struct ActiveTypeWrapper
       : public LhsExpressionInterface<typename T_ActiveType::Real, typename T_ActiveType::Gradient,
                                       typename T_ActiveType::Tape, ActiveTypeWrapper<T_ActiveType>>,
-        public AssignmentOperators<typename T_ActiveType::Tape, ActiveTypeWrapper<T_ActiveType>>,
+        public AssignmentOperators<typename T_ActiveType::Tape::Real, T_ActiveType::Tape::AllowJacobianOptimization,
+                                   ActiveTypeWrapper<T_ActiveType>>,
         public IncrementOperators<typename T_ActiveType::Tape, ActiveTypeWrapper<T_ActiveType>> {
     public:
 
@@ -68,33 +69,34 @@ namespace codi {
                                  CODI_T(ActiveType<CODI_DEFAULT_TAPE>));  ///< See WritableActiveTypeWrapper.
       using Tape = typename ActiveType::Tape;                             ///< See ActiveType.
 
-      using Real = typename Tape::Real;                   ///< See LhsExpressionInterface.
-      using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
-      using Identifier = typename Tape::Identifier;       ///< See LhsExpressionInterface.
-      using Gradient = typename Tape::Gradient;           ///< See LhsExpressionInterface.
+      using Real = typename Tape::Real;                    ///< See LhsExpressionInterface.
+      using PassiveReal = RealTraits::PassiveReal<Real>;   ///< Basic computation type.
+      using Identifier = typename Tape::Identifier;        ///< See LhsExpressionInterface.
+      using Gradient = typename Tape::Gradient;            ///< See LhsExpressionInterface.
+      using TapeData = typename Tape::ActiveTypeTapeData;  ///< See IdentifierInformationTapeInterface.
 
       using Base = LhsExpressionInterface<Real, Gradient, Tape, ActiveTypeWrapper>;  ///< Base class abbreviation.
 
     private:
 
       Real& primalValue;
-      Identifier& identifier;
+      TapeData& tapeData;
 
     public:
 
-      /// The identifier is not initialized. It is assumed to be a valid identifier (either default or assigned by an
+      /// The tapeData is not initialized. It is assumed to be a valid tapeData (either default or assigned by an
       /// expression).
-      CODI_INLINE ActiveTypeWrapper(Real& value, Identifier& identifier) : primalValue(value), identifier(identifier) {
+      CODI_INLINE ActiveTypeWrapper(Real& value, TapeData& tapeData) : primalValue(value), tapeData(tapeData) {
         // deliberately left empty
       }
 
       /// Create a reference to an active type. It is assumed that the lifespan of the argument is longer than
       /// the lifespan of the created value.
-      CODI_INLINE ActiveTypeWrapper(ActiveType& value) : primalValue(value.value()), identifier(value.getIdentifier()) {
+      CODI_INLINE ActiveTypeWrapper(ActiveType& value) : primalValue(value.value()), tapeData(value.getTapeData()) {
         // deliberately left empty
       }
 
-      /// The identifier is not destroyed. It is assumed to be still valid, since this is only a reference to the
+      /// The tapeData is not destroyed. It is assumed to be still valid, since this is only a reference to the
       /// actual value.
       CODI_INLINE ~ActiveTypeWrapper() {
         // deliberately left empty
@@ -111,8 +113,8 @@ namespace codi {
       /// @name Implementation of ExpressionInterface
       /// @{
 
-      using StoreAs = ActiveTypeWrapper const&;                ///< \copydoc codi::ExpressionInterface::StoreAs
-      using ActiveResult = typename ActiveType::ActiveResult;  ///< \copydoc codi::ExpressionInterface::ActiveResult
+      using StoreAs = ActiveTypeWrapper const&;  ///< \copydoc codi::ExpressionInterface::StoreAs
+      using ADLogic = Tape;                      ///< \copydoc codi::ExpressionInterface::ADLogic
 
       /// @}
       /*******************************************************************************/
@@ -121,12 +123,22 @@ namespace codi {
 
       /// \copydoc codi::LhsExpressionInterface::getIdentifier()
       CODI_INLINE Identifier& getIdentifier() {
-        return identifier;
+        return getTape().getIdentifier(tapeData);
       }
 
       /// \copydoc codi::LhsExpressionInterface::getIdentifier() const
       CODI_INLINE Identifier const& getIdentifier() const {
-        return identifier;
+        return getTape().getIdentifier(tapeData);
+      }
+
+      /// \copydoc codi::LhsExpressionInterface::getTapeData()
+      CODI_INLINE TapeData& getTapeData() {
+        return tapeData;
+      }
+
+      /// \copydoc codi::LhsExpressionInterface::getTapeData() const
+      CODI_INLINE TapeData const& getTapeData() const {
+        return tapeData;
       }
 
       /// \copydoc codi::LhsExpressionInterface::value()

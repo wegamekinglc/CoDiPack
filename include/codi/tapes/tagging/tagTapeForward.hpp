@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -74,9 +74,10 @@ namespace codi {
           };
       };
 
-      using Gradient = TagData<Tag>;   ///< See TapeTypesInterface.
-      using Identifier = Gradient;     ///< Same as the gradient type. Tangent data is stored in the active types.
-      using Position = EmptyPosition;  ///< See TapeTypesInterface.
+      using Gradient = TagData<Tag>;  ///< See TapeTypesInterface.
+      using Identifier = Gradient;    ///< Same as the gradient type. Tangent data is stored in the active types.
+      using ActiveTypeTapeData = TagData<Tag>;  ///< See TapeTypesInterface.
+      using Position = EmptyPosition;           ///< See TapeTypesInterface.
 
       using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
 
@@ -92,93 +93,38 @@ namespace codi {
       /// Constructor.
       TagTapeForward() : Base(), tempGradient() {}
 
-      /*******************************************************************************/
-      /// @name Implementation of InternalStatementRecordingTapeInterface
-      /// @{
+      using Base::AllowJacobianOptimization;
+      using Base::destroyTapeData;
+      using Base::getIdentifier;
+      using Base::initTapeData;
+      using Base::store;
 
-      static bool constexpr AllowJacobianOptimization = false;  ///< Do not allow Jacobian optimization.
-
-      /// Do nothing.
-      template<typename Real>
-      void initIdentifier(Real& value, Identifier& identifier) {
-        CODI_UNUSED(value);
-        identifier = Identifier();
-      }
-
-      /// Do nothing.
-      template<typename Real>
-      void destroyIdentifier(Real& value, Identifier& identifier) {
-        CODI_UNUSED(value, identifier);
-      }
-
-      /// Verify all tags of the rhs and the lhs properties.
-      template<typename Lhs, typename Rhs>
-      void store(LhsExpressionInterface<Real, Gradient, TagTapeForward, Lhs>& lhs,
-                 ExpressionInterface<Real, Rhs> const& rhs) {
-        typename Base::ValidateTags validate;
-        ValidationIndicator<Real, Tag> vi;
-
-        validate.eval(rhs, vi, *this);
-
-        Base::checkLhsError(lhs, rhs.cast().getValue());
-
-        Base::handleError(vi);
-
-        if (vi.isActive) {
-          Base::setTag(lhs.cast().getIdentifier().tag);
-        } else {
-          Base::resetTag(lhs.cast().getIdentifier().tag);
-        }
-
-        lhs.cast().value() = rhs.cast().getValue();
-      }
-
-      /// Verify all tags of the rhs and the lhs properties.
-      template<typename Lhs, typename Rhs>
-      void store(LhsExpressionInterface<Real, Gradient, TagTapeForward, Lhs>& lhs,
-                 LhsExpressionInterface<Real, Gradient, TagTapeForward, Rhs> const& rhs) {
-        store<Lhs, Rhs>(lhs, static_cast<ExpressionInterface<Real, Rhs> const&>(rhs));
-      }
-
-      /// Verify the lhs properties.
-      template<typename Lhs>
-      void store(LhsExpressionInterface<Real, Gradient, TagTapeForward, Lhs>& lhs, Real const& rhs) {
-        Base::checkLhsError(lhs, rhs);
-
-        Base::resetTag(lhs.cast().getIdentifier().tag);
-
-        lhs.cast().value() = rhs;
-      }
-
-      /// @}
       /*******************************************************************************/
       /// @name Implementation of GradientAccessTapeInterface
       /// @{
 
-      /// Verify tag.
+      /// Do nothing.
       void setGradient(Identifier& identifier, Gradient const& gradient) {
-        CODI_UNUSED(gradient);
-
-        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+        CODI_UNUSED(identifier, gradient);
       }
 
-      /// Verify tag.
+      /// Do nothing.
       Gradient const& getGradient(Identifier const& identifier) const {
-        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+        CODI_UNUSED(identifier);
 
         return tempGradient;
       }
 
-      /// Verify tag.
+      /// Do nothing.
       Gradient& gradient(Identifier& identifier) {
-        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+        CODI_UNUSED(identifier);
 
         return tempGradient;
       }
 
-      /// Verify tag.
+      /// Do nothing.
       Gradient const& gradient(Identifier const& identifier) const {
-        Base::verifyTagAndProperties(identifier.tag, 0.0, identifier.properties);
+        CODI_UNUSED(identifier);
 
         return tempGradient;
       }

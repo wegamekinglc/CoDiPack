@@ -1,11 +1,11 @@
 #
 # CoDiPack, a Code Differentiation Package
 #
-# Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+# Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
 # Homepage: http://scicomp.rptu.de
 # Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
 #
-# Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+# Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
 #
 # This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
 #
@@ -26,7 +26,7 @@
 # For other licensing options please contact us.
 #
 # Authors:
-#  - SciComp, University of Kaiserslautern-Landau:
+#  - SciComp, RPTU University Kaiserslautern-Landau:
 #    - Max Sagebaum
 #    - Johannes Blühdorn
 #    - Former members:
@@ -59,12 +59,16 @@ else
   $(warning ENZYME_DIR not defined. Testing without Enzyme.)
 endif
 
-FLAGS = -Wall -Werror=return-type -Wextra -pedantic -std=c++11 -DCODI_IgnoreInvalidJacobians=true -DCODI_EnableAssert=true -DCODI_ADWorkflowEvents -DCODI_PreaccEvents -DCODI_StatementEvents -DCODI_IndexEvents -I$(INCLUDE_DIR) $(CODI_INCLUDE) $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_ChunkSize=32 -DCODI_SmallChunkSize=32
+FLAGS = -Wall -Werror=return-type -Wextra -pedantic -std=c++17 -DCODI_IgnoreInvalidJacobians=true -DCODI_EnableAssert=true -DCODI_ADWorkflowEvents -DCODI_PreaccEvents -DCODI_StatementEvents -DCODI_IndexEvents -I$(INCLUDE_DIR) $(CODI_INCLUDE) $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_ChunkSize=32 -DCODI_SmallChunkSize=32
 
 ifeq ($(WARNINGS_AS_ERRORS), no)
   FLAGS := $(FLAGS) # add nothing
 else
   FLAGS := $(FLAGS) -Werror
+endif
+
+ifeq ($(SHOW_EVENTS), yes)
+  FLAGS := $(FLAGS) -DREGISTER_EVENTS=1
 endif
 
 ifeq ($(OPT), yes)

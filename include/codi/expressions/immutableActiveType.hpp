@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -61,42 +61,44 @@ namespace codi {
   struct ImmutableActiveType
       : public LhsExpressionInterface<typename T_ActiveType::Real, typename T_ActiveType::Gradient,
                                       typename T_ActiveType::Tape, ImmutableActiveType<T_ActiveType>>,
-        public AssignmentOperators<typename T_ActiveType::Tape, ImmutableActiveType<T_ActiveType>>,
+        public AssignmentOperators<typename T_ActiveType::Tape::Real, T_ActiveType::Tape::AllowJacobianOptimization,
+                                   ImmutableActiveType<T_ActiveType>>,
         public IncrementOperators<typename T_ActiveType::Tape, ImmutableActiveType<T_ActiveType>> {
     public:
 
       using ActiveType = CODI_DD(T_ActiveType, CODI_T(ActiveType<CODI_DEFAULT_TAPE>));  ///< See ImmutableActiveType.
       using Tape = typename ActiveType::Tape;                                           ///< See ActiveType.
 
-      using Real = typename Tape::Real;                   ///< See LhsExpressionInterface.
-      using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
-      using Identifier = typename Tape::Identifier;       ///< See LhsExpressionInterface.
-      using Gradient = typename Tape::Gradient;           ///< See LhsExpressionInterface.
+      using Real = typename Tape::Real;                    ///< See LhsExpressionInterface.
+      using PassiveReal = RealTraits::PassiveReal<Real>;   ///< Basic computation type.
+      using Identifier = typename Tape::Identifier;        ///< See LhsExpressionInterface.
+      using Gradient = typename Tape::Gradient;            ///< See LhsExpressionInterface.
+      using TapeData = typename Tape::ActiveTypeTapeData;  ///< See IdentifierInformationTapeInterface.
 
       using Base = LhsExpressionInterface<Real, Gradient, Tape, ImmutableActiveType>;  ///< Base class abbreviation.
 
     private:
 
       Real const primalValue;
-      Identifier const identifier;
+      TapeData const tapeData;
 
     public:
 
-      /// The identifier is not initialized. It is assumed to be a valid identifier (either default or assigned by an
+      /// The tape data is not initialized. It is assumed to be a valid tape data (either default or assigned by an
       /// expression) and has to be valid throughout the lifespan of this object.
-      CODI_INLINE ImmutableActiveType(Real const& value, Identifier const& identifier)
-          : primalValue(value), identifier(identifier) {
+      CODI_INLINE ImmutableActiveType(Real const& value, TapeData const& tapeData)
+          : primalValue(value), tapeData(tapeData) {
         // deliberately left empty
       }
 
-      /// Create an immutable copy of an active type. It is assumed that the identifier is valid throughout the lifespan
+      /// Create an immutable copy of an active type. It is assumed that the tape data is valid throughout the lifespan
       /// of this object.
       CODI_INLINE ImmutableActiveType(ActiveType const& value)
-          : primalValue(value.getValue()), identifier(value.getIdentifier()) {
+          : primalValue(value.getValue()), tapeData(value.getTapeData()) {
         // deliberately left empty
       }
 
-      /// The identifier is not destroyed. It is assumed to be still valid, since this is only an immutable copy of
+      /// The tape data is not destroyed. It is assumed to be still valid, since this is only an immutable copy of
       /// the actual value.
       CODI_INLINE ~ImmutableActiveType() {
         // deliberately left empty
@@ -109,8 +111,8 @@ namespace codi {
       /// @name Implementation of ExpressionInterface
       /// @{
 
-      using StoreAs = ImmutableActiveType const&;              ///< \copydoc codi::ExpressionInterface::StoreAs
-      using ActiveResult = typename ActiveType::ActiveResult;  ///< \copydoc codi::ExpressionInterface::ActiveResult
+      using StoreAs = ImmutableActiveType const&;  ///< \copydoc codi::ExpressionInterface::StoreAs
+      using ADLogic = Tape;                        ///< \copydoc codi::ExpressionInterface::ADLogic
 
       /// @}
       /*******************************************************************************/
@@ -122,7 +124,12 @@ namespace codi {
 
       /// \copydoc codi::LhsExpressionInterface::getIdentifier() const
       CODI_INLINE Identifier const& getIdentifier() const {
-        return identifier;
+        return getTape().getIdentifier(tapeData);
+      }
+
+      /// \copydoc codi::LhsExpressionInterface::getTapeData() const
+      CODI_INLINE TapeData const& getTapeData() const {
+        return tapeData;
       }
 
       /// \copydoc codi::LhsExpressionInterface::value() const

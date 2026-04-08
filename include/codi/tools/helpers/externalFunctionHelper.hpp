@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -254,7 +254,9 @@ namespace codi {
           CODI_INLINE void evalPrimFunc(Tape* t, VectorAccessInterface<Real, Identifier>* ra) {
             CODI_UNUSED(t);
 
-            Synchronization::serialize([&]() { initRun(ra); });
+            Synchronization::serialize([&]() {
+              initRun(ra);
+            });
 
             Synchronization::synchronize();
 
@@ -262,7 +264,9 @@ namespace codi {
 
             Synchronization::synchronize();
 
-            Synchronization::serialize([&]() { finalizeRun(ra); });
+            Synchronization::serialize([&]() {
+              finalizeRun(ra);
+            });
 
             Synchronization::synchronize();
           }
@@ -611,10 +615,14 @@ namespace codi {
           Synchronization::synchronize();
 
           // Clear the assembled data in a serial manner.
-          Synchronization::serialize([&]() { data = nullptr; });
+          Synchronization::serialize([&]() {
+            data = nullptr;
+          });
         } else {
           // Clear the assembled data in a serial manner.
-          Synchronization::serialize([&]() { delete data; });
+          Synchronization::serialize([&]() {
+            delete data;
+          });
         }
 
         // Create a new data object for the next call in a serial manner.

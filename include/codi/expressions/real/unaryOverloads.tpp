@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -57,18 +57,18 @@
 
   #include "../../config.h"
   #include "../../misc/macros.hpp"
+  #include "../computeExpression.hpp"
   #include "../expressionInterface.hpp"
-  #include "../unaryExpression.hpp"
   #define FUNCTION func
-  #define OPERATION_LOGIC UnaryOperation
+  #define OPERATION_LOGIC UnaryJacobianOperation
 
 namespace codi {
 #endif
 
   /// Function overload for FUNCTION.
   template<typename Real, typename Arg>
-  CODI_INLINE UnaryExpression<Real, Arg, OPERATION_LOGIC> FUNCTION(ExpressionInterface<Real, Arg> const& arg) {
-    return UnaryExpression<Real, Arg, OPERATION_LOGIC>(arg);
+  CODI_INLINE auto FUNCTION(ExpressionInterface<Real, Arg> const& arg) {
+    return ComputeExpression<Real, OPERATION_LOGIC, Arg>(arg);
   }
 
 // Create a correct include environment for viewing and programming in an IDE.

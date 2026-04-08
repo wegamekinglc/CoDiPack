@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -49,6 +49,8 @@ namespace codi {
 
 #ifndef DOXYGEN_DISABLE
 
+  #define MEDI_1_4_OR_GREATER MEDI_MAJOR_VERSION > 1 || (MEDI_MAJOR_VERSION == 1 && MEDI_MINOR_VERSION >= 4)
+
   template<typename T_Type>
   struct CoDiPackForwardTool : public medi::ADToolBase<CoDiPackForwardTool<T_Type>, typename T_Type::Gradient,
                                                        typename T_Type::PassiveReal, int> {
@@ -62,6 +64,10 @@ namespace codi {
       using IndexType = int;
 
       using Base = medi::ADToolBase<CoDiPackForwardTool, typename Type::Gradient, typename Type::PassiveReal, int>;
+
+  #if MEDI_1_4_OR_GREATER
+      using CallbackFuncTyped = typename Base::CallbackFuncTyped;
+  #endif
 
       using OpHelper =
           medi::OperatorHelper<medi::FunctionHelper<Type, Type, typename Type::PassiveReal, typename Type::Identifier,
@@ -113,14 +119,17 @@ namespace codi {
         return opHelper.convertOperator(op);
       }
 
+      using Base::createPrimalTypeBuffer;
       CODI_INLINE_NO_FA void createPrimalTypeBuffer(PrimalType*& buf, size_t size) const {
         buf = new PrimalType[size];
       }
 
+      using Base::createIndexTypeBuffer;
       CODI_INLINE_NO_FA void createIndexTypeBuffer(IndexType*& buf, size_t size) const {
         buf = new IndexType[size];
       }
 
+      using Base::deletePrimalTypeBuffer;
       CODI_INLINE_NO_FA void deletePrimalTypeBuffer(PrimalType*& buf) const {
         if (nullptr != buf) {
           delete[] buf;
@@ -128,6 +137,7 @@ namespace codi {
         }
       }
 
+      using Base::deleteIndexTypeBuffer;
       CODI_INLINE_NO_FA void deleteIndexTypeBuffer(IndexType*& buf) const {
         if (nullptr != buf) {
           delete[] buf;
@@ -152,6 +162,15 @@ namespace codi {
       static CODI_INLINE_NO_FA PrimalType getValue(Type const& value) {
         return value.getValue();
       }
+
+  #if MEDI_1_4_OR_GREATER
+      using Base::iterateIdentifiers;
+      void iterateIdentifiers(IndexType* indices, int elements, CallbackFuncTyped func, void* userData) const {
+        for (int i = 0; i < elements; i += 1) {
+          func(&indices[i], userData);
+        }
+      }
+  #endif
 
       static CODI_INLINE_NO_FA void setIntoModifyBuffer(ModifiedType& modValue, Type const& value) {
         CODI_UNUSED(modValue, value);

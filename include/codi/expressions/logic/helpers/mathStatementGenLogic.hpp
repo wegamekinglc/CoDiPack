@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -34,6 +34,7 @@
  */
 #pragma once
 
+#include <complex>
 #include <map>
 #include <type_traits>
 #include <utility>
@@ -119,12 +120,24 @@ namespace codi {
         linkRep.push_back("c(" + convert_value(node.getValue()) + ")");
       }
 
+      /// Called for leaf nodes which have an EmptyOperation
+      template<typename Node>
+      void handleEmpty(Node const& node, std::vector<std::string>& linkRep) {
+        CODI_UNUSED(node);
+
+        linkRep.push_back("");
+      }
+
     private:
 
       template<typename T>
       std::string convert_value(T const& v) {
         return std::to_string(v);
+      }
 
+      template<typename T>
+      std::string convert_value(std::complex<T> const& v) {
+        return "(" + std::to_string(std::real(v)) + " + " + std::to_string(std::imag(v)) + ")";
       }
 
       template<typename T>

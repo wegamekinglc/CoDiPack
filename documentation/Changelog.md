@@ -1,6 +1,47 @@
 Changelog {#Changelog}
 ===========================
 
+### v??? - ???
+ - Features:
+   * Specialization for Eigen math traits.
+
+ - Bugfix:
+   * Tag property 'DoNotUse' is now properly reset on overwrite.
+
+### v3.1.0 - 2026-02-02
+ - Features:
+   * It is now possible to define custom tape evaluators for all CoDiPack tapes. The evaluators have access to the full
+     statement data and functionality for low level functions.
+   * Low level function and external functions can now iterate over their input and output identifiers.
+   * New tool for optimizing the cache access of reuse index tapes. See \ref Example_29_Tape_cache_optimization.
+
+ - Internal:
+   * Restructure of per value tape data handling. Each tape and each index manager in CoDiPack can now define data that
+     is stored in each value. This is a breaking interface change but it will not affect the default CoDiPack tapes.
+     This change is mostly used for debugging.
+
+ - Bugfix:
+   * Explicitly set the language of CoDiPack to C++ for CMake.
+   * Add missing setter functions to complex numbers.
+
+### v3.0.0 - 2025-07-08
+ - General:
+   * Raised default cpp version of CoDiPack to 17. If you require a lower cpp version please use CoDiPack 2.*.
+
+ - Features:
+   * Added support for the spaceship operator (<=>).
+   * Preaccumulation with vector-based local adjoints.
+   * Support for complex types.
+
+ - Bugfix:
+   * Allow a tape change in the custom adjoint vector helper.
+
+### v 2.3.2 - 2025-04-08
+ - Bugfix: Correct dyadic update for adjoint matrix in linear system solvers.
+
+### v 2.3.1 - 2025-02-19
+ - Bugfix: Only include cxxabi.h for gnu compiler.
+
 ### v 2.3.0 - 2024-12-27
  - Features:
   * Tape evaluations with generalized custom adjoints.
@@ -77,7 +118,7 @@ Changelog {#Changelog}
    * Drop of modular class architecture.
    * Iterators for expression trees.
    * First support for aggregated types in external functions (e.g. std::complex).
-     See \ref Example_20_Aggregated_active_type_handling.
+     See \ref Example_20_Aggregated_active_type_handling_in_external_functions.
    * Autocompletion of template arguments in IDEs. See \ref TemplateDeclaration.
    * Overhaul of tutorials and examples. See \ref TutorialsAndExamples.
 

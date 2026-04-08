@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -67,15 +67,15 @@ namespace codi {
    *
    * @tparam T_Real        The computation type of a tape, usually chosen as ActiveType::Real.
    * @tparam T_Gradient    The gradient type of a tape, usually chosen as ActiveType::Gradient.
-   * @tparam T_Identifier  The adjoint/tangent identification type of a tape, usually chosen as ActiveType::Identifier.
+   * @tparam T_ActiveTypeTapeData  The tape data stored in each active type.
    */
-  template<typename T_Real, typename T_Gradient, typename T_Identifier>
+  template<typename T_Real, typename T_Gradient, typename T_ActiveTypeTapeData>
   struct ManualStatementPushTapeInterface {
     public:
 
-      using Real = CODI_DD(T_Real, double);           ///< See ManualStatementPushTapeInterface.
-      using Gradient = CODI_DD(T_Gradient, double);   ///< See ManualStatementPushTapeInterface.
-      using Identifier = CODI_DD(T_Identifier, int);  ///< See ManualStatementPushTapeInterface.
+      using Real = CODI_DD(T_Real, double);                           ///< See ManualStatementPushTapeInterface.
+      using Gradient = CODI_DD(T_Gradient, double);                   ///< See ManualStatementPushTapeInterface.
+      using ActiveTypeTapeData = CODI_DD(T_ActiveTypeTapeData, int);  ///< See ManualStatementPushTapeInterface.
 
       /*******************************************************************************/
       /// @name Interface definition
@@ -85,13 +85,13 @@ namespace codi {
       ///
       /// @param jacobian  Jacobian \f$ \frac{\d \phi}{\d u_i} \f$ of the argument \f$ u_i \f$.
       /// @param value   Value of the argument \f$ u_i \f$. Usually `u_i.value()`.
-      /// @param index   Identifier of the argument \f$ u_i \f$. Usually `u_i.identifier()`.
-      void pushJacobianManual(Real const& jacobian, Real const& value, Identifier const& index);
+      /// @param data    Tape data of the argument \f$ u_i \f$. Usually `u_i.getTapeData()`.
+      void pushJacobianManual(Real const& jacobian, Real const& value, ActiveTypeTapeData const& data);
 
       /// Initialize the storing of a hand computed statement. The primal value has to be updated already.
       /// @param lhsValue   Value of the result \f$ w \f$. Usually `w.value()`.
-      /// @param lhsIndex   Identifier of the result \f$ w \f$. Usually `w.identifier()`.
+      /// @param lhsData    Tape data of the result \f$ w \f$. Usually `w.getTapeData()`.
       /// @param size       Number of arguments of \f$ \phi \f$.
-      void storeManual(Real const& lhsValue, Identifier& lhsIndex, Config::ArgumentSize const& size);
+      void storeManual(Real const& lhsValue, ActiveTypeTapeData& lhsData, Config::ArgumentSize const& size);
   };
 }

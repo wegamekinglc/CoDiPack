@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -64,10 +64,10 @@
   #include "../../config.h"
   #include "../../misc/macros.hpp"
   #include "../../traits/realTraits.hpp"
-  #include "../binaryExpression.hpp"
+  #include "../computeExpression.hpp"
   #include "../constantExpression.hpp"
   #include "../expressionInterface.hpp"
-  #define OPERATION_LOGIC BinaryOperation
+  #define OPERATION_LOGIC BinaryJacobianOperation
   #define FUNCTION func
   #define SECOND_ARG_TYPE double
   #define SECOND_ARG_CONVERSION ConstantDataConversion
@@ -77,9 +77,8 @@ namespace codi {
 
   /// Function overload for FUNCTION.
   template<typename Real, typename ArgA>
-  CODI_INLINE BinaryExpression<Real, ArgA, ConstantExpression<SECOND_ARG_TYPE, SECOND_ARG_CONVERSION>, OPERATION_LOGIC>
-  FUNCTION(ExpressionInterface<Real, ArgA> const& argA, SECOND_ARG_TYPE const& argB) {
-    return BinaryExpression<Real, ArgA, ConstantExpression<SECOND_ARG_TYPE, SECOND_ARG_CONVERSION>, OPERATION_LOGIC>(
+  CODI_INLINE auto FUNCTION(ExpressionInterface<Real, ArgA> const& argA, SECOND_ARG_TYPE const& argB) {
+    return ComputeExpression<Real, OPERATION_LOGIC, ArgA, ConstantExpression<SECOND_ARG_TYPE, SECOND_ARG_CONVERSION>>(
         argA, ConstantExpression<SECOND_ARG_TYPE, SECOND_ARG_CONVERSION>(argB));
   }
 

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -70,8 +70,9 @@ namespace codi {
 
       using Base = ExpressionInterface<T_Real, T_Impl>;  ///< Base class abbreviation.
 
-      using Identifier = typename Tape::Identifier;       ///< See GradientAccessTapeInterface.
-      using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
+      using Identifier = typename Tape::Identifier;        ///< See GradientAccessTapeInterface.
+      using TapeData = typename Tape::ActiveTypeTapeData;  ///< See IdentifierInformationTapeInterface.
+      using PassiveReal = RealTraits::PassiveReal<Real>;   ///< Basic computation type.
 
       LhsExpressionInterface() = default;                                     ///< Constructor
       LhsExpressionInterface(LhsExpressionInterface const& other) = default;  ///< Constructor
@@ -87,6 +88,9 @@ namespace codi {
                                                 ///< expression. See also @ref IdentifierManagement
       Identifier& getIdentifier();  ///< Get a reference to the identifier of the tape for this expression. See also
                                     ///< @ref IdentifierManagement
+
+      TapeData const& getTapeData() const;  ///< Get the data of the tape stored in this lhs expression.
+      TapeData& getTapeData();              ///< Get the data of the tape stored in this lhs expression.
 
       static Tape& getTape();  ///< Get a reference to the tape which manages this expression.
 
@@ -188,19 +192,7 @@ namespace codi {
       /// @name Implementation of NodeInterface
       /// @{
 
-      static bool constexpr EndPoint = true;  ///< \copydoc codi::NodeInterface::EndPoint
-
-      /// \copydoc codi::NodeInterface::forEachLink
-      template<typename Logic, typename... Args>
-      CODI_INLINE void forEachLink(TraversalLogic<Logic>& logic, Args&&... args) const {
-        CODI_UNUSED(logic, args...);
-      }
-
-      /// \copydoc codi::NodeInterface::forEachLinkConstExpr
-      template<typename Logic, typename... Args>
-      CODI_INLINE static typename Logic::ResultType constexpr forEachLinkConstExpr(Args&&... CODI_UNUSED_ARG(args)) {
-        return Logic::NeutralElement;
-      }
+      static size_t constexpr LinkCount = 0;  ///< \copydoc codi::NodeInterface::LinkCount
 
     protected:
 
@@ -208,7 +200,7 @@ namespace codi {
       ///
       /// To be called in constructors of the implementing class.
       CODI_INLINE void init(Real const& newValue, EventHints::Statement statementType) {
-        Impl::getTape().initIdentifier(cast().value(), cast().getIdentifier());
+        Impl::getTape().initTapeData(cast().value(), cast().getTapeData());
         EventSystem<Tape>::notifyStatementPrimalListeners(Impl::getTape(), Real(), Identifier(), newValue,
                                                           statementType);
       }
@@ -217,7 +209,7 @@ namespace codi {
       ///
       /// To be called in the destructor of the implementing class.
       CODI_INLINE void destroy() {
-        Impl::getTape().destroyIdentifier(cast().value(), cast().getIdentifier());
+        Impl::getTape().destroyTapeData(cast().value(), cast().getTapeData());
       }
 
       /// @}
@@ -244,6 +236,7 @@ namespace codi {
 
       using Real = typename Type::Real;              ///< See DataExtraction::Real.
       using Identifier = typename Type::Identifier;  ///< See DataExtraction::Identifier.
+      using TapeData = typename Type::TapeData;      ///< See DataExtraction::TapeData.
 
       /// \copydoc DataExtraction::getValue()
       CODI_INLINE static Real getValue(Type const& v) {
@@ -255,9 +248,24 @@ namespace codi {
         return v.getIdentifier();
       }
 
+      /// \copydoc DataExtraction::getTapeData()
+      CODI_INLINE static TapeData getTapeData(Type const& v) {
+        return v.getTapeData();
+      }
+
       /// \copydoc DataExtraction::setValue()
       CODI_INLINE static void setValue(Type& v, Real const& value) {
         v.setValue(value);
+      }
+
+      /// \copydoc DataExtraction::setIdentifier()
+      CODI_INLINE static void setIdentifier(Type& v, Identifier const& identifier) {
+        v.getIdentifier() = identifier;
+      }
+
+      /// \copydoc DataExtraction::setTapeData()
+      CODI_INLINE static void setTapeData(Type& v, TapeData const& data) {
+        v.getTapeData() = data;
       }
   };
 
@@ -281,6 +289,18 @@ namespace codi {
       /// \copydoc DataRegistration::registerExternalFunctionOutput()
       CODI_INLINE static Real registerExternalFunctionOutput(Type& v) {
         return Type::getTape().registerExternalFunctionOutput(v);
+      }
+  };
+
+  /// Specialize real traits for lhs expressions.
+  template<typename T_Type>
+  struct RealTraits::AggregatedTypeTraits<T_Type, ExpressionTraits::EnableIfLhsExpression<T_Type>>
+      : RealTraits::ArrayAggregatedTypeTraitsBase<T_Type, T_Type, typename T_Type::Real, 1> {
+    public:
+
+      /// \copydoc codi::ComputeOperation::getMathRep
+      static CODI_INLINE std::string getMathRep() {
+        return "()";
       }
   };
 #endif

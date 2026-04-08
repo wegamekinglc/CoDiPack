@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -68,6 +68,9 @@ namespace codi {
    *    - updateTangentWithLhs(): Update an internal value with the \f$ \dot u \f$ value.
    *    - setLhsTangent(): Set \f$ \dot w \f$ to the internal value.
    *
+   *  - Indirect adjoint/tangent access for functions with multiple outputs:
+   *    - setActiveVariableForIndirectAccess(): Set the index for the current lhs tangent or adjoint updates.
+   *
    *  - Direct adjoint vector access: The arrays need to have the size of getVectorSize()
    *    - getAdjointVec(): Get the adjoint vector at the specified location.
    *    - resetAdjointVec(): Reset the adjoint vector at the specified location to zero.
@@ -100,7 +103,7 @@ namespace codi {
       /// @name Misc
 
       virtual size_t getVectorSize() const = 0;          ///< Vector size in the current tape evaluation.
-      virtual bool isLhsZero() = 0;                      ///< True if the adjoint set with setLhsAdjoint is zero.
+      virtual bool isLhsZero() const = 0;                ///< True if the adjoint set with setLhsAdjoint is zero.
       virtual VectorAccessInterface* clone() const = 0;  ///< Obtain a heap-allocated copy of the vector access inter-
                                                          ///< face. The user is responsible for deleting the pointer.
 
@@ -123,6 +126,12 @@ namespace codi {
                                         Real const& jacobian) = 0;  ///< Perform \f$ \text{internalMem} \aeq jacobian *
                                                                     ///< \dot
                                                                     /// u_{\text{index}} \f$.
+
+      /*******************************************************************************/
+      /// @name Indirect adjoint/tangent access for functions with multiple outputs
+
+      virtual void setActiveVariableForIndirectAccess(size_t pos) = 0;  ///< Set \f$ w = wArray[pos]\f$ for the other
+                                                                        ///< indirect access routines.
 
       /*******************************************************************************/
       /// @name Direct adjoint access

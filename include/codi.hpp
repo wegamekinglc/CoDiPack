@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -38,13 +38,17 @@
 #include "codi/expressions/activeType.hpp"
 #include "codi/expressions/activeTypeStatelessTape.hpp"
 #include "codi/expressions/activeTypeWrapper.hpp"
+#include "codi/expressions/complex/allOperators.hpp"
+#include "codi/expressions/complex/stdComplex.hpp"
 #include "codi/expressions/immutableActiveType.hpp"
 #include "codi/expressions/real/allOperators.hpp"
 #include "codi/expressions/referenceActiveType.hpp"
+#include "codi/expressions/static/staticContextAggregatedActiveType.hpp"
 #include "codi/misc/enumBitset.hpp"
 #include "codi/tapes/data/blockData.hpp"
 #include "codi/tapes/data/chunkedData.hpp"
 #include "codi/tapes/forwardEvaluation.hpp"
+#include "codi/tapes/indices/debugMultiUseIndexManager.hpp"
 #include "codi/tapes/indices/linearIndexManager.hpp"
 #include "codi/tapes/indices/multiUseIndexManager.hpp"
 #include "codi/tapes/jacobianLinearTape.hpp"
@@ -69,6 +73,8 @@
 #include "codi/tools/helpers/preaccumulationHelper.hpp"
 #include "codi/tools/helpers/statementPushHelper.hpp"
 #include "codi/tools/helpers/tapeHelper.hpp"
+#include "codi/tools/identifierCacheOptimizer.hpp"
+#include "codi/tools/io/writeConnectivityData.hpp"
 #include "codi/tools/lowlevelFunctions/lowLevelFunctionCreationUtilities.hpp"
 #include "codi/traits/computationTraits.hpp"
 #include "codi/traits/numericLimits.hpp"
@@ -81,6 +87,7 @@
 #if CODI_EnableEigen
   #include "codi/tools/helpers/linearSystem/eigenLinearSystem.hpp"
   #include "codi/tools/lowlevelFunctions/linearAlgebra/matrixMatrixMultiplication.hpp"
+  #include "codi/traits/eigenTraits.hpp"
 #endif
 
 #if CODI_EnableEnzyme
@@ -90,10 +97,10 @@
 /** \copydoc codi::Namespace */
 namespace codi {
 
-#define CODI_MAJOR_VERSION 2
-#define CODI_MINOR_VERSION 3
+#define CODI_MAJOR_VERSION 3
+#define CODI_MINOR_VERSION 1
 #define CODI_BUILD_VERSION 0
-#define CODI_VERSION "2.3.0"
+#define CODI_VERSION "3.1.0"
 
   /// General forward AD type. See \ref sec_forwardAD for a forward mode AD explanation or \ref ActiveTypeList for a
   /// list of all types.
@@ -170,7 +177,7 @@ namespace codi {
   ///
   /// Primal value taping approach with linear index handling.
   template<typename Real, typename Gradient = Real, typename Index = int,
-           template<typename> class StatementEvaluator = InnerStatementEvaluator>
+           typename StatementEvaluator = InnerStatementEvaluator>
   using RealReversePrimalGen = ActiveType<PrimalValueLinearTape<
       PrimalValueTapeTypes<Real, Gradient, LinearIndexManager<Index>, StatementEvaluator, DefaultChunkedData>>>;
 
@@ -188,7 +195,7 @@ namespace codi {
   ///
   /// Primal value taping approach with linear index handling.
   template<typename Real, typename Gradient = Real, typename Index = int,
-           template<typename> class StatementEvaluator = InnerStatementEvaluator>
+           typename StatementEvaluator = InnerStatementEvaluator>
   using RealReversePrimalUncheckedGen = ActiveType<PrimalValueLinearTape<
       PrimalValueTapeTypes<Real, Gradient, LinearIndexManager<Index>, StatementEvaluator, DefaultChunkedData>>>;
 
@@ -200,7 +207,7 @@ namespace codi {
   ///
   /// Primal value taping approach with reuse index handling.
   template<typename Real, typename Gradient = Real, typename IndexManager = MultiUseIndexManager<int>,
-           template<typename> class StatementEvaluator = InnerStatementEvaluator>
+           typename StatementEvaluator = InnerStatementEvaluator>
   using RealReversePrimalIndexGen = ActiveType<
       PrimalValueReuseTape<PrimalValueTapeTypes<Real, Gradient, IndexManager, StatementEvaluator, DefaultChunkedData>>>;
 
@@ -218,7 +225,7 @@ namespace codi {
   ///
   /// Primal value taping approach with reuse index handling.
   template<typename Real, typename Gradient = Real, typename IndexManager = MultiUseIndexManager<int>,
-           template<typename> class StatementEvaluator = InnerStatementEvaluator>
+           typename StatementEvaluator = InnerStatementEvaluator>
   using RealReversePrimalIndexUncheckedGen = ActiveType<
       PrimalValueReuseTape<PrimalValueTapeTypes<Real, Gradient, IndexManager, StatementEvaluator, DefaultChunkedData>>>;
 

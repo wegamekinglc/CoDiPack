@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -54,10 +54,9 @@ namespace codi {
   struct LocalAdjoints : public InternalAdjointsInterface<T_Gradient, T_Identifier, T_Tape> {
     public:
 
-      using Tape = CODI_DD(T_Tape,
-                           CODI_T(FullTapeInterface<double, double, int, EmptyPosition>));  ///< See LocalAdjoints.
-      using Gradient = CODI_DD(T_Gradient, double);                                         ///< See LocalAdjoints.
-      using Identifier = CODI_DD(T_Identifier, int);                                        ///< See LocalAdjoints.
+      using Tape = CODI_DD(T_Tape, CODI_DEFAULT_TAPE);  ///< See LocalAdjoints.
+      using Gradient = CODI_DD(T_Gradient, double);     ///< See LocalAdjoints.
+      using Identifier = CODI_DD(T_Identifier, int);    ///< See LocalAdjoints.
 
     private:
 

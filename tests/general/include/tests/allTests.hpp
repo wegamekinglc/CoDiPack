@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -42,6 +42,10 @@
 #include "basic/testOutput.hpp"
 #include "exceptions/testOneArgumentExceptions.hpp"
 #include "exceptions/testTwoArgumentExceptions.hpp"
+#include "expressions/complex/testComplexAssignOperators.hpp"
+#include "expressions/complex/testComplexOneArgumentExpr1.hpp"
+#include "expressions/complex/testComplexOneArgumentExpr2.hpp"
+#include "expressions/complex/testComplexTwoArgumentExpr1.hpp"
 #include "expressions/testAssignOperators1.hpp"
 #include "expressions/testAssignOperators2.hpp"
 #include "expressions/testBigExpressions.hpp"
@@ -53,6 +57,7 @@
 #include "expressions/testTwoArgumentExpr2.hpp"
 #include "externalFunctions/testExtFunctionCall.hpp"
 #include "externalFunctions/testExtFunctionCallMultiple.hpp"
+#include "externalFunctions/testExtFunctionComplex.hpp"
 #include "io/testIO.hpp"
 #include "io/testSwap.hpp"
 #include "tools/helpers/testEigenLinearSystemSolverHandler.hpp"
@@ -64,17 +69,29 @@
 #include "tools/helpers/testPreaccumulationForward.hpp"
 #include "tools/helpers/testPreaccumulationForwardInvalidAdjoint.hpp"
 #include "tools/helpers/testPreaccumulationLargeStatement.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVector.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorForward.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorForwardInvalidAdjoint.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorLargeStatement.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffset.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffsetForward.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffsetForwardInvalidAdjoint.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffsetLargeStatement.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffsetPassiveValue.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorOffsetZeroJacobi.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPassiveValue.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTape.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTapeForward.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTapeForwardInvalidAdjoint.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTapeLargeStatement.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTapePassiveValue.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorPreprocessTapeZeroJacobi.hpp"
+#include "tools/helpers/testPreaccumulationLocalAdjointVectorZeroJacobi.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjoints.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjointsForward.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjointsForwardInvalidAdjoint.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjointsLargeStatement.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjointsPassiveValue.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTape.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTapeForward.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTapeForwardInvalidAdjoint.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTapeLargeStatement.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTapePassiveValue.hpp"
-#include "tools/helpers/testPreaccumulationLocalAdjointsPreprocessTapeZeroJacobi.hpp"
 #include "tools/helpers/testPreaccumulationLocalAdjointsZeroJacobi.hpp"
 #include "tools/helpers/testPreaccumulationLocalMappedAdjoints.hpp"
 #include "tools/helpers/testPreaccumulationLocalMappedAdjointsForward.hpp"
@@ -88,4 +105,6 @@
 #include "tools/helpers/testStatementPushHelper.hpp"
 #include "tools/lowlevelFunctions/linearAlgebra/testMatrixMatrixMultiplication.hpp"
 #include "tools/testReferenceActiveType.hpp"
+#include "traits/testDataExtractionTraits.hpp"
 #include "traits/testNumericLimits.hpp"
+#include "traits/testTapeRegistrationTraits.hpp"

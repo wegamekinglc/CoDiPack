@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -57,22 +57,22 @@ namespace codi {
    * e.g. a primal evaluation after the reverse evaluation. This will yield better performance for small tape ranges in
    * the evaluation.
    *
-   * @tparam T_Real        The computation type of a tape, usually chosen as ActiveType::Real.
-   * @tparam T_Gradient    The gradient type of a tape usually, chosen as ActiveType::Gradient.
-   * @tparam T_Identifier  The adjoint/tangent identification type of a tape, usually chosen as ActiveType::Identifier.
-   * @tparam T_Position  Global tape position, usually chosen as Tape::Position.
+   * @tparam T_Real                The computation type of a tape, usually chosen as ActiveType::Real.
+   * @tparam T_Gradient            The gradient type of a tape usually, chosen as ActiveType::Gradient.
+   * @tparam T_Position            Global tape position, usually chosen as Tape::Position.
+   * @tparam T_ActiveTypeTapeData  The tape data stored in each active type.
    */
-  template<typename T_Real, typename T_Gradient, typename T_Identifier, typename T_Position>
+  template<typename T_Real, typename T_Gradient, typename T_Position, typename T_ActiveTypeTapeData>
   struct PreaccumulationEvaluationTapeInterface
       : public virtual PositionalEvaluationTapeInterface<T_Position>,
         public virtual ForwardEvaluationTapeInterface<T_Position>,
-        public virtual ManualStatementPushTapeInterface<T_Real, T_Gradient, T_Identifier> {
+        public virtual ManualStatementPushTapeInterface<T_Real, T_Gradient, T_ActiveTypeTapeData> {
     public:
 
-      using Real = CODI_DD(T_Real, double);                 ///< See PreaccumulationEvaluationTapeInterface.
-      using Gradient = CODI_DD(T_Gradient, double);         ///< See PreaccumulationEvaluationTapeInterface.
-      using Identifier = CODI_DD(T_Identifier, int);        ///< See PreaccumulationEvaluationTapeInterface.
-      using Position = CODI_DD(T_Position, EmptyPosition);  ///< See PreaccumulationEvaluationTapeInterface.
+      using Real = CODI_DD(T_Real, double);                           ///< See PreaccumulationEvaluationTapeInterface.
+      using Gradient = CODI_DD(T_Gradient, double);                   ///< See PreaccumulationEvaluationTapeInterface.
+      using Position = CODI_DD(T_Position, EmptyPosition);            ///< See PreaccumulationEvaluationTapeInterface.
+      using ActiveTypeTapeData = CODI_DD(T_ActiveTypeTapeData, int);  ///< See PreaccumulationEvaluationTapeInterface.
 
       /*******************************************************************************/
       /// @name Interface definition

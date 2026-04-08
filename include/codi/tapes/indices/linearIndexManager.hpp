@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -67,6 +67,7 @@ namespace codi {
     public:
 
       using Index = CODI_DD(T_Index, int);        ///< See LinearIndexManager.
+      using ActiveTypeIndexData = Index;          ///< Same as the index.
       using Base = IndexManagerInterface<Index>;  ///< Base class abbreviation.
 
       /*******************************************************************************/
@@ -165,9 +166,31 @@ namespace codi {
         return count;
       }
 
+      /// \copydoc IndexManagerInterface::initIndex
+      CODI_INLINE void initIndex(Index& index) {
+        index = Index();
+      }
+
       /// \copydoc IndexManagerInterface::updateLargestCreatedIndex
       CODI_INLINE void updateLargestCreatedIndex(Index const& index) {
         count = index;
+      }
+
+      /// \copydoc IndexManagerInterface::getIndex
+      CODI_INLINE Index const& getIndex(ActiveTypeIndexData const& data) {
+        return data;
+      }
+
+      /// \copydoc IndexManagerInterface::getIndex
+      CODI_INLINE Index& getIndex(ActiveTypeIndexData& data) {
+        return data;
+      }
+
+      /// \copydoc IndexManagerInterface::validateRhsIndex
+      void validateRhsIndex(ActiveTypeIndexData const& data) const {
+        CODI_UNUSED(data);
+
+        codiAssert(data <= count);
       }
 
       /// @}

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -37,6 +37,7 @@
 #define TestStatement 1
 #define TestPreacc 2
 #define TestTape 3
+#define TestAggregates 4
 
 #ifndef TEST_NAME
   #error Please define TEST_NAME as one of the tests.
@@ -48,6 +49,8 @@
   #include "testPreacc.hpp"
 #elif (TEST_NAME == TestTape)
   #include "testTape.hpp"
+#elif (TEST_NAME == TestAggregates)
+  #include "testAggregates.hpp"
 #else
   #error Unknown test, please define TEST_NAME as one of the tests.
 #endif

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -35,6 +35,8 @@
 #pragma once
 
 #include "../config.h"
+#include "../expressions/aggregate/aggregatedActiveType.hpp"
+#include "../expressions/aggregate/arrayAccessExpression.hpp"
 #include "../expressions/lhsExpressionInterface.hpp"
 #include "../expressions/logic/helpers/jacobianComputationLogic.hpp"
 #include "../misc/macros.hpp"
@@ -76,7 +78,8 @@ namespace codi {
       using Gradient = CODI_DD(T_Gradient, double);  ///< See ForwardEvaluation.
 
       using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
-      using Identifier = Gradient;  ///< Same as the gradient type. Tangent data is stored in the active types.
+      using Identifier = Gradient;          ///< Same as the gradient type. Tangent data is stored in the active types.
+      using ActiveTypeTapeData = Gradient;  ///< Same as the gradient type. Tangent data is stored in the active types.
 
       /*******************************************************************************/
       /// @name Implementation of InternalStatementRecordingTapeInterface
@@ -84,17 +87,17 @@ namespace codi {
 
       static bool constexpr AllowJacobianOptimization = true;  ///< See InternalStatementRecordingTapeInterface
 
-      /// \copydoc codi::InternalStatementRecordingTapeInterface::initIdentifier()
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::initTapeData()
       template<typename Real>
-      CODI_INLINE void initIdentifier(Real& value, Identifier& identifier) {
+      CODI_INLINE void initTapeData(Real& value, ActiveTypeTapeData& data) {
         CODI_UNUSED(value);
-        identifier = Identifier();
+        data = ActiveTypeTapeData();
       }
 
-      /// \copydoc codi::InternalStatementRecordingTapeInterface::destroyIdentifier()
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::destroyTapeData()
       template<typename Real>
-      CODI_INLINE void destroyIdentifier(Real& value, Identifier& identifier) {
-        CODI_UNUSED(value, identifier);
+      CODI_INLINE void destroyTapeData(Real& value, ActiveTypeTapeData& data) {
+        CODI_UNUSED(value, data);
       }
 
       /// @}
@@ -126,6 +129,27 @@ namespace codi {
 
         lhs.cast().value() = rhs.cast().getValue();
         lhs.cast().gradient() = newGradient;
+      }
+
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::store() <br>
+      /// Implementation for AggregatedActiveType.
+      template<typename Aggregated, typename Type, typename Lhs, typename Rhs>
+      CODI_INLINE void store(AggregatedActiveType<Aggregated, Type, Lhs>& lhs,
+                             ExpressionInterface<Aggregated, Rhs> const& rhs) {
+        using AggregatedTraits = RealTraits::AggregatedTypeTraits<Aggregated>;
+        int constexpr Elements = AggregatedTraits::Elements;
+        LocalReverseLogic reversal;
+
+        Gradient newGradient[Elements] = {};
+        static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+          reversal.eval(ArrayAccessExpression<Aggregated, i.value, Rhs>(rhs), Real(1.0), newGradient[i.value]);
+        });
+
+        Aggregated newValue = rhs.cast().getValue();
+        static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+          lhs.values[i.value].value() = AggregatedTraits::template arrayAccess<i.value>(newValue);
+          lhs.values[i.value].gradient() = newGradient[i.value];
+        });
       }
 
       /// \copydoc codi::InternalStatementRecordingTapeInterface::store() <br>
@@ -184,6 +208,20 @@ namespace codi {
           Identifier const& identifier, AdjointsManagement adjointsManagement = AdjointsManagement::Automatic) const {
         CODI_UNUSED(adjointsManagement);
         return identifier;
+      }
+      /// @}
+      /*******************************************************************************/
+      /// @name Functions from IdentifierInformationTapeInterface which are required.
+      /// @{
+
+      /// \copydoc codi::IdentifierInformationTapeInterface::getIdentifier()
+      CODI_INLINE Identifier const& getIdentifier(ActiveTypeTapeData const& data) {
+        return data;
+      }
+
+      /// \copydoc codi::IdentifierInformationTapeInterface::getIdentifier()
+      CODI_INLINE Identifier& getIdentifier(ActiveTypeTapeData& data) {
+        return data;
       }
 
       /// @}

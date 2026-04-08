@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -42,7 +42,9 @@
 #include "../../misc/exceptions.hpp"
 #include "../../misc/macros.hpp"
 #include "../../misc/memberStore.hpp"
+#include "../misc/assignStatement.hpp"
 #include "statementEvaluatorInterface.hpp"
+#include "statementEvaluatorTapeInterface.hpp"
 
 /** \copydoc codi::Namespace */
 namespace codi {
@@ -51,13 +53,8 @@ namespace codi {
    * @brief Only stores the function handle for the reverse evaluation.
    *
    * Uses the StatementEvaluatorTapeInterface.
-   *
-   * @tparam T_Real  The computation type of a tape, usually chosen as ActiveType::Real.
    */
-  template<typename T_Real>
-  struct ReverseStatementEvaluator : public StatementEvaluatorInterface<T_Real> {
-      using Real = CODI_DD(T_Real, double);  ///< See ReverseStatementEvaluator.
-
+  struct ReverseStatementEvaluator : public StatementEvaluatorInterface {
     public:
 
       /*******************************************************************************/
@@ -66,55 +63,29 @@ namespace codi {
 
       using Handle = void*;  ///< Function pointer to the reverse evaluation.
 
-      /// Throws CODI_EXCEPTION on call.
-      template<typename Tape, typename... Args>
-      static Real callForward(Handle const& h, Args&&... args) {
-        CODI_UNUSED(h, args...);
+      /// \copydoc StatementEvaluatorInterface::call
+      template<StatementCall type, typename Tape, typename... Args>
+      static void call(Handle const& h, Args&&... args) {
+        using Stmt = AssignStatement<ActiveType<Tape>, ActiveType<Tape>>;
+        using CallGen = typename Tape::template StatementCallGenerator<type, Stmt>;
 
-        CODI_EXCEPTION("ReverseStatementEvaluator does not support forward evaluation calls.");
+        using Function = decltype(&CallGen::evaluate);
 
-        return Real();
-      }
+        Function func = (Function)h;
 
-      /// Throws CODI_EXCEPTION on call.
-      template<typename Tape, typename... Args>
-      static Real callPrimal(Handle const& h, Args&&... args) {
-        CODI_UNUSED(h, args...);
-
-        CODI_EXCEPTION("ReverseStatementEvaluator does not support primal evaluation calls.");
-
-        return Real();
-      }
-
-      /// \copydoc StatementEvaluatorInterface::callReverse
-      template<typename Tape, typename... Args>
-      static void callReverse(Handle const& h, Args&&... args) {
-        HandleTyped<Tape> func = (HandleTyped<Tape>)h;
-
-        func(std::forward<Args>(args)...);
-      }
-
-      /// \copydoc StatementEvaluatorInterface::getWriteInformation
-      template<typename Tape, typename... Args>
-      static WriteInfo getWriteInformation(Handle const& h, Args&&... args) {
-        CODI_UNUSED(h, args...);
-
-        CODI_EXCEPTION("ReverseStatementEvaluator does not support get write information calls.");
-        return WriteInfo();
+        if (StatementCall::Reverse == type) {
+          func(std::forward<Args>(args)...);
+        } else {
+          CODI_EXCEPTION("ReverseStatementEvaluator only supports reverse evaluation calls.");
+        }
       }
 
       /// \copydoc StatementEvaluatorInterface::createHandle
-      template<typename Tape, typename Generator, typename Expr>
+      template<typename Tape, typename Generator, typename Stmt>
       static Handle createHandle() {
-        return (Handle*)Generator::template statementEvaluateReverse<Expr>;
+        return (Handle*)Generator::template statementEvaluateReverse<Stmt>;
       }
 
       /// @}
-
-    protected:
-
-      /// Full reverse function type.
-      template<typename Tape>
-      using HandleTyped = decltype(&Tape::template statementEvaluateReverse<ActiveType<Tape>>);
   };
 }

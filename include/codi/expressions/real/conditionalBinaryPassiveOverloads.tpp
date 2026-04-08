@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -44,6 +44,10 @@
   #error Please define the name of the operator.
 #endif
 
+#ifndef RETURN
+  #error Please define the return type of the operator.
+#endif
+
 #ifndef PASSIVE_TYPE
   #error Please define the passive type for the overloads.
 #endif
@@ -57,6 +61,7 @@
   #include "../../traits/realTraits.hpp"
   #include "../expressionInterface.hpp"
   #define OPERATOR ==
+  #define RETURN bool
   #define PASSIVE_TYPE double
 
 namespace codi {
@@ -64,13 +69,13 @@ namespace codi {
 
   /// Function overload for operator OPERATOR.
   template<typename Real, typename ArgA>
-  CODI_INLINE bool operator OPERATOR(ExpressionInterface<Real, ArgA> const& argA, PASSIVE_TYPE const& argB) {
+  CODI_INLINE RETURN operator OPERATOR(ExpressionInterface<Real, ArgA> const& argA, PASSIVE_TYPE const& argB) {
     return RealTraits::getPassiveValue(argA.cast()) OPERATOR argB;
   }
 
   /// Function overload for operator OPERATOR.
   template<typename Real, typename ArgB>
-  CODI_INLINE bool operator OPERATOR(PASSIVE_TYPE const& argA, ExpressionInterface<Real, ArgB> const& argB) {
+  CODI_INLINE RETURN operator OPERATOR(PASSIVE_TYPE const& argA, ExpressionInterface<Real, ArgB> const& argB) {
     return argA OPERATOR RealTraits::getPassiveValue(argB.cast());
   }
 

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -40,6 +40,8 @@
 #include <type_traits>
 
 #include "../config.h"
+#include "../expressions/aggregate/aggregatedActiveType.hpp"
+#include "../expressions/aggregate/arrayAccessExpression.hpp"
 #include "../expressions/lhsExpressionInterface.hpp"
 #include "../expressions/logic/compileTimeTraversalLogic.hpp"
 #include "../expressions/logic/helpers/forEachLeafLogic.hpp"
@@ -86,6 +88,8 @@ namespace codi {
                            CODI_T(DataInterface<Nested>));  ///< See JacobianTapeTypes.
 
       using Identifier = typename IndexManager::Index;  ///< See IndexManagerInterface.
+      using ActiveTypeTapeData =
+          typename IndexManager::ActiveTypeIndexData;  ///< Take the active real data from the index manager.
 
       /// See JacobianTapeTypes.
       template<typename Impl>
@@ -136,10 +140,11 @@ namespace codi {
       using Base = CommonTapeImplementation<T_TapeTypes, T_Impl>;  ///< Base class abbreviation.
       friend Base;  ///< Allow the base class to call protected and private methods.
 
-      using Real = typename TapeTypes::Real;                  ///< See TapeTypesInterface.
-      using Gradient = typename TapeTypes::Gradient;          ///< See TapeTypesInterface.
-      using IndexManager = typename TapeTypes::IndexManager;  ///< See JacobianTapeTypes.
-      using Identifier = typename TapeTypes::Identifier;      ///< See TapeTypesInterface.
+      using Real = typename TapeTypes::Real;                              ///< See TapeTypesInterface.
+      using Gradient = typename TapeTypes::Gradient;                      ///< See TapeTypesInterface.
+      using IndexManager = typename TapeTypes::IndexManager;              ///< See JacobianTapeTypes.
+      using Identifier = typename TapeTypes::Identifier;                  ///< See TapeTypesInterface.
+      using ActiveTypeTapeData = typename TapeTypes::ActiveTypeTapeData;  ///< See TapeTypesInterface.
 
       using StatementData = typename TapeTypes::StatementData;  ///< See JacobianTapeTypes.
       using JacobianData = typename TapeTypes::JacobianData;    ///< See JacobianTapeTypes.
@@ -264,20 +269,20 @@ namespace codi {
       /// @name Functions from InternalStatementRecordingTapeInterface
       /// @{
 
-      /// \copydoc codi::InternalStatementRecordingTapeInterface::initIdentifier()
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::initTapeData()
       template<typename Real>
-      CODI_INLINE void initIdentifier(Real& value, Identifier& identifier) {
+      CODI_INLINE void initTapeData(Real& value, ActiveTypeTapeData& data) {
         CODI_UNUSED(value);
 
-        identifier = IndexManager::InactiveIndex;
+        indexManager.get().initIndex(data);
       }
 
-      /// \copydoc codi::InternalStatementRecordingTapeInterface::destroyIdentifier()
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::destroyTapeData()
       template<typename Real>
-      CODI_INLINE void destroyIdentifier(Real& value, Identifier& identifier) {
+      CODI_INLINE void destroyTapeData(Real& value, ActiveTypeTapeData& data) {
         CODI_UNUSED(value);
 
-        indexManager.get().template freeIndex<Impl>(identifier);
+        indexManager.get().template freeIndex<Impl>(data);
       }
 
       /// @}
@@ -288,9 +293,10 @@ namespace codi {
       struct PushJacobianLogic : public JacobianComputationLogic<PushJacobianLogic> {
         public:
           /// General implementation. Checks for invalid and passive values/Jacobians.
-          template<typename Node, typename Jacobian, typename DataVector>
-          CODI_INLINE void handleJacobianOnActive(Node const& node, Jacobian jacobianExpr, DataVector& dataVector) {
-            Real jacobian = ComputationTraits::adjointConversion<Real>(jacobianExpr);
+          template<typename Node, typename DataVector>
+          CODI_INLINE void handleJacobianOnActive(Node const& node, Real jacobian, DataVector& dataVector,
+                                                  IndexManager const& indexManager) {
+            indexManager.validateRhsIndex(node.getTapeData());
 
             if (CODI_ENABLE_CHECK(Config::CheckZeroIndex, 0 != node.getIdentifier())) {
               if (CODI_ENABLE_CHECK(Config::IgnoreInvalidJacobians, RealTraits::isTotalFinite(jacobian))) {
@@ -302,12 +308,11 @@ namespace codi {
           }
 
           /// Specialization for ReferenceActiveType nodes. Delays Jacobian push.
-          template<typename Type, typename Jacobian, typename DataVector>
-          CODI_INLINE void handleJacobianOnActive(ReferenceActiveType<Type> const& node, Jacobian jacobianExpr,
-                                                  DataVector& dataVector) {
+          template<typename Type, typename DataVector>
+          CODI_INLINE void handleJacobianOnActive(ReferenceActiveType<Type> const& node, Real jacobian,
+                                                  DataVector& dataVector, IndexManager const& indexManager) {
             CODI_UNUSED(dataVector);
-
-            Real jacobian = ComputationTraits::adjointConversion<Real>(jacobianExpr);
+            indexManager.validateRhsIndex(node.getTapeData());
 
             if (CODI_ENABLE_CHECK(Config::IgnoreInvalidJacobians, RealTraits::isTotalFinite(jacobian))) {
               // Do a delayed push for these leaf nodes, accumulate the jacobian in the local member.
@@ -322,7 +327,10 @@ namespace codi {
 
           /// Specialization for ReferenceActiveType nodes. Pushes the delayed Jacobian.
           template<typename Type, typename DataVector>
-          CODI_INLINE void handleActive(ReferenceActiveType<Type> const& node, DataVector& dataVector) {
+          // indexManager should be a const&, for some reason gcc did not preferred this overload to the ellipsis one.
+          CODI_INLINE void handleActive(ReferenceActiveType<Type> const& node, DataVector& dataVector,
+                                        IndexManager& indexManager) {
+            indexManager.validateRhsIndex(node.getTapeData());
             if (CODI_ENABLE_CHECK(Config::CheckZeroIndex, 0 != node.getIdentifier())) {
               if (CODI_ENABLE_CHECK(Config::CheckJacobianIsZero, !RealTraits::isTotalZero(node.jacobian))) {
                 dataVector.pushData(node.jacobian, node.getIdentifier());
@@ -348,8 +356,8 @@ namespace codi {
         auto& insertVector = jacobianData;
 #endif
 
-        pushJacobianLogic.eval(rhs.cast(), Real(1.0), insertVector);
-        pushDelayedJacobianLogic.eval(rhs.cast(), insertVector);
+        pushJacobianLogic.eval(rhs.cast(), Real(1.0), insertVector, indexManager.get());
+        pushDelayedJacobianLogic.eval(rhs.cast(), insertVector, indexManager.get());
 
 #if CODI_RemoveDuplicateJacobianArguments
         jacobianSorter.storeData(jacobianData);
@@ -360,12 +368,132 @@ namespace codi {
 
       /// @{
 
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::store() <br>
+      /// Implementation for AggregatedActiveType.
+      template<typename Aggregated, typename Type, typename Lhs, typename Rhs>
+      CODI_INLINE void store(AggregatedActiveType<Aggregated, Type, Lhs>& lhs,
+                             ExpressionInterface<Aggregated, Rhs> const& rhs) {
+        using AggregatedTraits = RealTraits::AggregatedTypeTraits<Aggregated>;
+
+        int constexpr Elements = AggregatedTraits::Elements;
+
+        bool freeAndUpdate = true;
+
+        if (CODI_ENABLE_CHECK(Config::CheckTapeActivity, cast().isActive())) {
+          size_t constexpr MaxArgs = ExpressionTraits::NumberOfActiveTypeArguments<Rhs>::value;
+
+          codiAssert(MaxArgs < Config::MaxArgumentSize);
+
+          statementData.reserveItems(Elements);
+
+          // Push the Jacobians
+          typename JacobianData::InternalPosHandle jacobianStart = jacobianData.reserveItems(MaxArgs * Elements);
+          std::array<size_t, Elements> numberOfArguments;
+          size_t totalNumberOfArguments = 0;
+          static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+            pushJacobians(ArrayAccessExpression<Aggregated, i.value, Rhs>(rhs));
+
+            size_t newTotalNumberOfArguments = jacobianData.getPushedDataCount(jacobianStart);
+            numberOfArguments[i.value] = newTotalNumberOfArguments - totalNumberOfArguments;
+            totalNumberOfArguments = newTotalNumberOfArguments;
+          });
+
+          if (0 != totalNumberOfArguments) {
+            freeAndUpdate = false;
+
+            // This implementation avoids the creation of self reference adjoint equations. See paper (TODO: add when
+            // released.) Section 4.1 for a detailed description. In short: For e.g. a = a * b with complex numbers
+            // the adjoint assignment of a.i modifies \bar a.r which is used in the adjoint assignment of a.r. This is
+            // wrong since the original value of \bar a.r needs to be used. If now self references are present, this
+            // problem does not arise.
+
+            // Create new identifiers to prevent self references.
+            std::array<ActiveTypeTapeData, Elements> identifiers = {};
+            static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+              if (CODI_ENABLE_CHECK(Config::CheckEmptyStatements, 0 != numberOfArguments[i.value])) {
+                indexManager.get().template assignIndex<Impl>(identifiers[i.value]);
+              }
+            });
+
+            // Update all lhs entries
+            Aggregated real = rhs.cast().getValue();
+            size_t eventJacobianOffset = 0;
+
+            static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+              indexManager.get().template freeIndex<Impl>(lhs.values[i.value].getTapeData());
+
+              if (CODI_ENABLE_CHECK(Config::CheckEmptyStatements, 0 != numberOfArguments[i.value])) {
+                lhs.values[i.value].getTapeData() = identifiers[i.value];
+                cast().pushStmtData(lhs.values[i.value].getIdentifier(),
+                                    (Config::ArgumentSize)numberOfArguments[i.value]);
+
+                if (Config::StatementEvents) {
+                  Real* jacobians;
+                  Identifier* rhsIdentifiers;
+                  jacobianData.getDataPointers(jacobians, rhsIdentifiers);
+                  jacobians -= totalNumberOfArguments;
+                  rhsIdentifiers -= totalNumberOfArguments;
+
+                  EventSystem<Impl>::notifyStatementStoreOnTapeListeners(
+                      cast(), lhs.values[i.value].getIdentifier(),
+                      AggregatedTraits::template arrayAccess<i.value>(real), numberOfArguments[i.value],
+                      &rhsIdentifiers[eventJacobianOffset], &jacobians[eventJacobianOffset]);
+
+                  eventJacobianOffset += numberOfArguments[i.value];
+                }
+              }
+
+              lhs.values[i.value].value() = AggregatedTraits::template arrayAccess<i.value>(real);
+            });
+          }
+        }
+
+        if (freeAndUpdate) {
+          Aggregated real = rhs.cast().getValue();
+
+          static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+            lhs.values[i.value].value() = AggregatedTraits::template arrayAccess<i.value>(real);
+            indexManager.get().template freeIndex<Impl>(lhs.values[i.value].getTapeData());
+          });
+        }
+      }
+
+      /// \copydoc codi::InternalStatementRecordingTapeInterface::store() <br>
+      /// Optimization for copy statements of aggregated types.
+      template<typename Aggregated, typename Type, typename Lhs, typename Rhs>
+      CODI_INLINE void store(AggregatedActiveType<Aggregated, Type, Lhs>& lhs,
+                             AggregatedActiveType<Aggregated, Type, Rhs> const& rhs) {
+        using AggregatedTraits = RealTraits::AggregatedTypeTraits<Aggregated>;
+
+        int constexpr Elements = AggregatedTraits::Elements;
+
+        if (CODI_ENABLE_CHECK(Config::CheckTapeActivity, cast().isActive())) {
+          if (IndexManager::CopyNeedsStatement || !Config::CopyOptimization) {
+            store(lhs, static_cast<ExpressionInterface<Aggregated, Rhs> const&>(rhs));
+            return;
+          } else {
+            static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+              indexManager.get().template copyIndex<Impl>(lhs.values[i.value].getTapeData(),
+                                                          rhs.values[i.value].getTapeData());
+            });
+          }
+        } else {
+          static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+            indexManager.get().template freeIndex<Impl>(lhs.values[i.value].getTapeData());
+          });
+        }
+
+        static_for<Elements>([&](auto i) CODI_LAMBDA_INLINE {
+          lhs.values[i.value].value() = rhs.values[i.value].getValue();
+        });
+      }
+
       /// \copydoc codi::InternalStatementRecordingTapeInterface::store()
       template<typename Lhs, typename Rhs>
       CODI_INLINE void store(LhsExpressionInterface<Real, Gradient, Impl, Lhs>& lhs,
                              ExpressionInterface<Real, Rhs> const& rhs) {
         if (CODI_ENABLE_CHECK(Config::CheckTapeActivity, cast().isActive())) {
-          size_t constexpr MaxArgs = ExpressionTraits::NumberOfActiveTypeArguments<Rhs>::value;
+          size_t constexpr MaxArgs = ExpressionTraits::NumberOfActiveTypeArguments<Rhs>::template eval<Rhs>();
 
           codiAssert(MaxArgs < Config::MaxArgumentSize);
 
@@ -376,7 +504,7 @@ namespace codi {
 
           size_t numberOfArguments = jacobianData.getPushedDataCount(jacobianStart);
           if (CODI_ENABLE_CHECK(Config::CheckEmptyStatements, 0 != numberOfArguments)) {
-            indexManager.get().template assignIndex<Impl>(lhs.cast().getIdentifier());
+            indexManager.get().template assignIndex<Impl>(lhs.cast().getTapeData());
             cast().pushStmtData(lhs.cast().getIdentifier(), (Config::ArgumentSize)numberOfArguments);
 
             if (Config::StatementEvents) {
@@ -391,10 +519,10 @@ namespace codi {
                                                                      rhsIdentifiers, jacobians);
             }
           } else {
-            indexManager.get().template freeIndex<Impl>(lhs.cast().getIdentifier());
+            indexManager.get().template freeIndex<Impl>(lhs.cast().getTapeData());
           }
         } else {
-          indexManager.get().template freeIndex<Impl>(lhs.cast().getIdentifier());
+          indexManager.get().template freeIndex<Impl>(lhs.cast().getTapeData());
         }
 
         lhs.cast().value() = rhs.cast().getValue();
@@ -410,10 +538,10 @@ namespace codi {
             store<Lhs, Rhs>(lhs, static_cast<ExpressionInterface<Real, Rhs> const&>(rhs));
             return;
           } else {
-            indexManager.get().template copyIndex<Impl>(lhs.cast().getIdentifier(), rhs.cast().getIdentifier());
+            indexManager.get().template copyIndex<Impl>(lhs.cast().getTapeData(), rhs.cast().getTapeData());
           }
         } else {
-          indexManager.get().template freeIndex<Impl>(lhs.cast().getIdentifier());
+          indexManager.get().template freeIndex<Impl>(lhs.cast().getTapeData());
         }
 
         lhs.cast().value() = rhs.cast().getValue();
@@ -423,7 +551,7 @@ namespace codi {
       /// Specialization for passive assignments.
       template<typename Lhs>
       CODI_INLINE void store(LhsExpressionInterface<Real, Gradient, Impl, Lhs>& lhs, Real const& rhs) {
-        indexManager.get().template freeIndex<Impl>(lhs.cast().getIdentifier());
+        indexManager.get().template freeIndex<Impl>(lhs.cast().getTapeData());
 
         lhs.cast().value() = rhs;
       }
@@ -444,9 +572,9 @@ namespace codi {
         }
 
         if (unusedIndex) {
-          indexManager.get().template assignUnusedIndex<Impl>(value.cast().getIdentifier());
+          indexManager.get().template assignUnusedIndex<Impl>(value.cast().getTapeData());
         } else {
-          indexManager.get().template assignIndex<Impl>(value.cast().getIdentifier());
+          indexManager.get().template assignIndex<Impl>(value.cast().getTapeData());
         }
 
         if (TapeTypes::IsLinearIndexHandler) {
@@ -524,11 +652,11 @@ namespace codi {
 
       /// Performs the AD \ref sec_reverseAD "reverse" equation for a statement.
       template<typename AdjointVector>
-      CODI_INLINE static void incrementAdjoints(AdjointVector& adjointVector,
-                                                AdjointVectorTraits::Gradient<AdjointVector> const& lhsAdjoint,
-                                                Config::ArgumentSize const& numberOfArguments, size_t& curJacobianPos,
-                                                Real const* const rhsJacobians,
-                                                Identifier const* const rhsIdentifiers) {
+      CODI_INLINE static void incrementAdjoints(
+          AdjointVector& CODI_RESTRICT adjointVector,
+          AdjointVectorTraits::Gradient<AdjointVector> const& CODI_RESTRICT lhsAdjoint,
+          Config::ArgumentSize const& CODI_RESTRICT numberOfArguments, size_t& CODI_RESTRICT curJacobianPos,
+          Real const* CODI_RESTRICT const rhsJacobians, Identifier const* CODI_RESTRICT const rhsIdentifiers) {
         size_t endJacobianPos = curJacobianPos - numberOfArguments;
 
         if (CODI_ENABLE_CHECK(Config::SkipZeroAdjointEvaluation, !RealTraits::isTotalZero(lhsAdjoint))) CODI_Likely {
@@ -547,11 +675,12 @@ namespace codi {
 
       /// Performs the AD \ref sec_forwardAD "forward" equation for a statement.
       template<typename AdjointVector>
-      CODI_INLINE static void incrementTangents(AdjointVector const& adjointVector,
-                                                AdjointVectorTraits::Gradient<AdjointVector>& lhsAdjoint,
-                                                Config::ArgumentSize const& numberOfArguments, size_t& curJacobianPos,
-                                                Real const* const rhsJacobians,
-                                                Identifier const* const rhsIdentifiers) {
+      CODI_INLINE static void incrementTangents(AdjointVector const& CODI_RESTRICT adjointVector,
+                                                AdjointVectorTraits::Gradient<AdjointVector>& CODI_RESTRICT lhsAdjoint,
+                                                Config::ArgumentSize const& numberOfArguments,
+                                                size_t& CODI_RESTRICT curJacobianPos,
+                                                Real const* CODI_RESTRICT const rhsJacobians,
+                                                Identifier const* CODI_RESTRICT const rhsIdentifiers) {
         size_t endJacobianPos = curJacobianPos + numberOfArguments;
 
         while (curJacobianPos < endJacobianPos) CODI_Likely {
@@ -748,12 +877,12 @@ namespace codi {
       /// @{
 
       /// \copydoc codi::ManualStatementPushTapeInterface::pushJacobianManual()
-      void pushJacobianManual(Real const& jacobian, Real const& value, Identifier const& index) {
+      void pushJacobianManual(Real const& jacobian, Real const& value, ActiveTypeTapeData const& data) {
         CODI_UNUSED(value);
 
         cast().incrementManualPushCounter();
 
-        jacobianData.pushData(jacobian, index);
+        jacobianData.pushData(jacobian, indexManager.get().getIndex(data));
 
         if (Config::StatementEvents) {
           if (this->manualPushCounter == this->manualPushGoal) {
@@ -772,7 +901,7 @@ namespace codi {
       }
 
       /// \copydoc codi::ManualStatementPushTapeInterface::storeManual()
-      void storeManual(Real const& lhsValue, Identifier& lhsIndex, Config::ArgumentSize const& size) {
+      void storeManual(Real const& lhsValue, ActiveTypeTapeData& lhsData, Config::ArgumentSize const& size) {
         CODI_UNUSED(lhsValue);
         Impl& impl = cast();
 
@@ -781,10 +910,10 @@ namespace codi {
         statementData.reserveItems(1);
         jacobianData.reserveItems(size);
 
-        indexManager.get().template assignIndex<Impl>(lhsIndex);
-        impl.pushStmtData(lhsIndex, (Config::ArgumentSize)size);
+        indexManager.get().template assignIndex<Impl>(lhsData);
+        impl.pushStmtData(indexManager.get().getIndex(lhsData), (Config::ArgumentSize)size);
 
-        impl.initializeManualPushData(lhsValue, lhsIndex, size);
+        impl.initializeManualPushData(lhsValue, indexManager.get().getIndex(lhsData), size);
       }
 
       /// @}
@@ -825,7 +954,7 @@ namespace codi {
                                     Position const& end) {
         Impl& impl = cast();
         writer->start(impl);
-        Base::llfByteData.evaluateForward(start, end, Impl::template internalWriteTape<Type>,  writer);
+        Base::llfByteData.evaluateForward(start, end, Impl::template internalWriteTape<Type>, writer);
         writer->finish();
       }
 
@@ -850,11 +979,11 @@ namespace codi {
 
         Base::internalStoreLowLevelFunction(token, size, data);
 
-        Identifier lhsIndex = Identifier();
+        ActiveTypeTapeData lhsData = ActiveTypeTapeData();
         if (LinearIndexHandling) {
-          indexManager.get().template assignIndex<Impl>(lhsIndex);
+          indexManager.get().template assignIndex<Impl>(lhsData);
         }
-        cast().pushStmtData(lhsIndex, Config::StatementLowLevelFunctionTag);
+        cast().pushStmtData(indexManager.get().getIndex(lhsData), Config::StatementLowLevelFunctionTag);
       }
 
       /// @}
@@ -940,6 +1069,13 @@ namespace codi {
 
         static Real temp;
         return temp;
+      }
+
+      /// Not implemented, raises an exception.
+      Real* getPrimalVector() {
+        CODI_EXCEPTION("Accessing primal vector of an Jacobian tape.");
+
+        return nullptr;
       }
 
       /// @}

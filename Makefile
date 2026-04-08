@@ -1,11 +1,11 @@
 #
 # CoDiPack, a Code Differentiation Package
 #
-# Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+# Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
 # Homepage: http://scicomp.rptu.de
 # Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
 #
-# Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+# Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
 #
 # This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
 #
@@ -26,7 +26,7 @@
 # For other licensing options please contact us.
 #
 # Authors:
-#  - SciComp, University of Kaiserslautern-Landau:
+#  - SciComp, RPTU University Kaiserslautern-Landau:
 #    - Max Sagebaum
 #    - Johannes Blühdorn
 #    - Former members:
@@ -69,7 +69,7 @@ CODI_VERSION = $(MAJOR_VERSION).$(MINOR_VERSION).$(BUILD_VERSION)
 
 CODI_DIR := .
 
-FLAGS = -Wall -Werror=return-type -pedantic -DCODI_OptIgnoreInvalidJacobians=true -DCODI_EnableAssert=true -I$(CODI_DIR)/include -fopenmp $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_StatementEvents
+FLAGS = -std=c++17 -Wall -Werror=return-type -pedantic -DCODI_OptIgnoreInvalidJacobians=true -DCODI_EnableAssert=true -I$(CODI_DIR)/include -fopenmp $(EIGEN_DEFINE) $(ENZYME_DEFINE) -DCODI_StatementEvents
 
 ifndef CLANG_FORMAT
   CLANG_FORMAT := clang-format
@@ -77,11 +77,6 @@ else
   CLANG_FORMAT := $(CLANG_FORMAT)
 endif
 
-ifeq ($(CPP14), yes)
-  FLAGS += -std=c++14
-else
-  FLAGS += -std=c++11
-endif
 ifeq ($(OPT), yes)
   FLAGS += -O3
 else
@@ -150,6 +145,9 @@ doc:
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/documentation
 	CODI_VERSION=$(CODI_VERSION) doxygen
+
+single_header:
+	quom --include_directory include include/codi.hpp $(BUILD_DIR)/codi_single.hpp
 
 .PHONY: format
 format:

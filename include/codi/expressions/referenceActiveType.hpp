@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -53,24 +53,27 @@ namespace codi {
    * @tparam T_Type  The type of the reference which is captured.
    */
   template<typename T_Type>
-  struct ReferenceActiveType : public LhsExpressionInterface<typename T_Type::Real, typename T_Type::Gradient,
-                                                             typename T_Type::Tape, ReferenceActiveType<T_Type>>,
-                               public AssignmentOperators<typename T_Type::Tape, ReferenceActiveType<T_Type>>,
-                               public IncrementOperators<typename T_Type::Tape, ReferenceActiveType<T_Type>> {
+  struct ReferenceActiveType
+      : public LhsExpressionInterface<typename T_Type::Real, typename T_Type::Gradient, typename T_Type::Tape,
+                                      ReferenceActiveType<T_Type>>,
+        public AssignmentOperators<typename T_Type::Tape::Real, T_Type::Tape::AllowJacobianOptimization,
+                                   ReferenceActiveType<T_Type>>,
+        public IncrementOperators<typename T_Type::Tape, ReferenceActiveType<T_Type>> {
     public:
 
       /// See ReferenceActiveType.
       using Type = CODI_DD(T_Type, CODI_DEFAULT_LHS_EXPRESSION);
       using Tape = typename Type::Tape;  ///< See LhsExpressionInterface.
 
-      using Real = typename Tape::Real;                   ///< See LhsExpressionInterface.
-      using PassiveReal = RealTraits::PassiveReal<Real>;  ///< Basic computation type.
-      using Identifier = typename Tape::Identifier;       ///< See LhsExpressionInterface.
-      using Gradient = typename Tape::Gradient;           ///< See LhsExpressionInterface.
+      using Real = typename Tape::Real;                    ///< See LhsExpressionInterface.
+      using PassiveReal = RealTraits::PassiveReal<Real>;   ///< Basic computation type.
+      using Identifier = typename Tape::Identifier;        ///< See LhsExpressionInterface.
+      using Gradient = typename Tape::Gradient;            ///< See LhsExpressionInterface.
+      using TapeData = typename Tape::ActiveTypeTapeData;  ///< See IdentifierInformationTapeInterface.
 
     protected:
 
-      Type& reference;
+      Type& reference;  ///< Reference to the underlying active type.
 
     public:
 
@@ -82,6 +85,7 @@ namespace codi {
       /// Constructor
       CODI_INLINE ReferenceActiveType(Type& v) : reference(v), jacobian() {}
 
+      /// Copy constructor
       CODI_INLINE ReferenceActiveType(ReferenceActiveType const& o) : reference(o.reference), jacobian() {}
 
       /// See LhsExpressionInterface::operator=(ExpressionInterface const&).
@@ -95,8 +99,8 @@ namespace codi {
       /// @name Implementation of LhsExpressionInterface
       /// @{
 
-      using StoreAs = ReferenceActiveType const&;        ///< \copydoc codi::ExpressionInterface::StoreAs
-      using ActiveResult = typename Type::ActiveResult;  ///< \copydoc codi::ExpressionInterface::ActiveResult
+      using StoreAs = ReferenceActiveType const&;  ///< \copydoc codi::ExpressionInterface::StoreAs
+      using ADLogic = Tape;                        ///< \copydoc codi::ExpressionInterface::ADLogic
 
       /// \copydoc codi::LhsExpressionInterface::getIdentifier()
       CODI_INLINE Identifier& getIdentifier() {
@@ -106,6 +110,16 @@ namespace codi {
       /// \copydoc codi::LhsExpressionInterface::getIdentifier() const
       CODI_INLINE Identifier const& getIdentifier() const {
         return reference.getIdentifier();
+      }
+
+      /// \copydoc codi::LhsExpressionInterface::getTapeData()
+      CODI_INLINE TapeData& getTapeData() {
+        return reference.getTapeData();
+      }
+
+      /// \copydoc codi::LhsExpressionInterface::getTapeData() const
+      CODI_INLINE TapeData const& getTapeData() const {
+        return reference.getTapeData();
       }
 
       /// \copydoc codi::LhsExpressionInterface::value()

@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -53,6 +53,8 @@
 namespace codi {
 
 #ifndef DOXYGEN_DISABLE
+
+  #define MEDI_1_4_OR_GREATER MEDI_MAJOR_VERSION > 1 || (MEDI_MAJOR_VERSION == 1 && MEDI_MINOR_VERSION >= 4)
 
   template<typename T_Type>
   struct CoDiMeDiAdjointInterfaceWrapper : public medi::AdjointInterface {
@@ -167,6 +169,7 @@ namespace codi {
 
       // Helper definition for CoDiPack.
       using Tape = CODI_DD(typename Type::Tape, CODI_DEFAULT_TAPE);
+      using IterCallback = typename ExternalFunction<Tape>::IterCallback;
 
       using OpHelper =
           medi::OperatorHelper<medi::FunctionHelper<Type, Type, typename Type::PassiveReal, typename Type::Gradient,
@@ -207,7 +210,8 @@ namespace codi {
       CODI_INLINE_NO_FA void addToolAction(medi::HandleBase* h) const {
         if (nullptr != h) {
           getTape().pushExternalFunction(
-              ExternalFunction<Tape>::create(callHandleReverse, h, deleteHandle, callHandleForward, callHandlePrimal));
+              ExternalFunction<Tape>::create(callHandleReverse, h, deleteHandle, callHandleForward, callHandlePrimal,
+                                             callHandleIterateInputs, callHandleIterateOutputs));
         }
       }
 
@@ -341,6 +345,29 @@ namespace codi {
 
         medi::HandleBase* handle = static_cast<medi::HandleBase*>(h);
         delete handle;
+      }
+
+      static void callHandleIterateInputs(Tape* tape, void* h, IterCallback func, void* userData) {
+        CODI_UNUSED(tape);
+  #if MEDI_1_4_OR_GREATER
+        medi::HandleBase* handle = static_cast<medi::HandleBase*>(h);
+        handle->funcIterateInputIds(handle, (::medi::CallbackFunc)func, userData);
+  #else
+        CODI_UNUSED(h, func, userData);
+        CODI_EXCEPTION("Identifier iteration requires at leas MeDiPack 1.4.0.");
+  #endif
+      }
+
+      static void callHandleIterateOutputs(Tape* tape, void* h, IterCallback func, void* userData) {
+        CODI_UNUSED(tape);
+
+  #if MEDI_1_4_OR_GREATER
+        medi::HandleBase* handle = static_cast<medi::HandleBase*>(h);
+        handle->funcIterateOutputIds(handle, (::medi::CallbackFunc)func, userData);
+  #else
+        CODI_UNUSED(h, func, userData);
+        CODI_EXCEPTION("Identifier iteration requires at leas MeDiPack 1.4.0.");
+  #endif
       }
 
       static Tape& getTape() {

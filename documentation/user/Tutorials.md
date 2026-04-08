@@ -15,6 +15,7 @@ or pointers to other features.
 | \subpage Tutorial_04_Vector_mode_AD "" | Vector mode examples with CoDiPack. |
 | \subpage Tutorial_05_Repeated_tape_recordings "" | How different tapes are recorded in in CoDiPack. |
 | \subpage Tutorial_06_Higher_order_types_helper_acces "" | Describes how higher order AD types can be constructed and used. |
+| \subpage Tutorial_07_Aggregated_type_implementation "" | Explains how aggregated types can be added to CoDiPack. |
 
 
 | Example | |
@@ -38,7 +39,7 @@ or pointers to other features.
 | \subpage Example_17_EvaluationHelper "" | Automatic computation of Hessians and Jacobians for function objects. (EvaluationHelper) |
 | \subpage Example_18_EvaluationHelper_function_objects "" | Function object kinds for the EvaluationHelper (Example 17). |
 | \subpage Example_19_EvaluationHelper_handle_creation "" | Handle creation for the EvaluationHelper (Example 17). |
-| \subpage Example_20_Aggregated_active_type_handling "" | Generalized data extraction of aggregated active types in external functions. |
+| \subpage Example_20_Aggregated_active_type_handling_in_external_functions "" | Generalized data extraction of aggregated active types in external functions. |
 | \subpage Example_21_Special_handling_of_linear_system_solvers "" | Add special handling linear system solvers. |
 | \subpage Example_22_Event_system "" | Use CoDiPack's event system to gain insight into the AD workflow. |
 | \subpage Example_23_OpenMP_Parallel_Codes "" | Use CoDiPack together with OpDiLib for the differentiation of OpenMP parallel codes. |
@@ -46,6 +47,8 @@ or pointers to other features.
 | \subpage Example_25_Tape_Writers "" | Writing tapes to disk and other tape writers.|
 | \subpage Example_26_Jacobian_Tape_Readers "" | Reading Jacobian tapes from disk. |
 | \subpage Example_27_Primal_Tape_Readers "" | Rading primal value tapes from disk. |
+| \subpage Example_28_Complex_numbers "" | How to use complex numbers in CoDiPack. |
+| \subpage Example_29_Tape_cache_optimization "" | Applying a cache optimimization for faster reverse evaluations to the tape.|
 
 The graph shows how the tutorials and examples are connected. Usually it is better to understand first the prerequisites
 of a tutorial/example before reading the actual example.

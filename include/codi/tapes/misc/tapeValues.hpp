@@ -1,11 +1,11 @@
 /*
  * CoDiPack, a Code Differentiation Package
  *
- * Copyright (C) 2015-2025 Chair for Scientific Computing (SciComp), University of Kaiserslautern-Landau
+ * Copyright (C) 2015-2026 Chair for Scientific Computing (SciComp), RPTU University Kaiserslautern-Landau
  * Homepage: http://scicomp.rptu.de
  * Contact:  Prof. Nicolas R. Gauger (codi@scicomp.uni-kl.de)
  *
- * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, University of Kaiserslautern-Landau)
+ * Lead developers: Max Sagebaum, Johannes Blühdorn (SciComp, RPTU University Kaiserslautern-Landau)
  *
  * This file is part of CoDiPack (http://scicomp.rptu.de/software/codi).
  *
@@ -26,7 +26,7 @@
  * For other licensing options please contact us.
  *
  * Authors:
- *  - SciComp, University of Kaiserslautern-Landau:
+ *  - SciComp, RPTU University Kaiserslautern-Landau:
  *    - Max Sagebaum
  *    - Johannes Blühdorn
  *    - Former members:
@@ -315,6 +315,28 @@ namespace codi {
       /// Get the used memory in bytes.
       double getUsedMemorySize() {
         return doubleData[usedMemoryIndex];
+      }
+
+      /// Performs 'this - other' on all values provided by the tape.
+      TapeValues subtract(TapeValues const& other) {
+        if (this->sections.size() != other.sections.size() || this->doubleData.size() != other.doubleData.size() ||
+            this->longData.size() != other.longData.size() ||
+            this->unsignedLongData.size() != other.unsignedLongData.size()) {
+          CODI_EXCEPTION("Tape values have not the same number of entries.");
+        }
+
+        TapeValues result = *this;
+        for (size_t i = 0; i < result.doubleData.size(); i += 1) {
+          result.doubleData[i] -= other.doubleData[i];
+        }
+        for (size_t i = 0; i < result.longData.size(); i += 1) {
+          result.longData[i] -= other.longData[i];
+        }
+        for (size_t i = 0; i < result.unsignedLongData.size(); i += 1) {
+          result.unsignedLongData[i] -= other.unsignedLongData[i];
+        }
+
+        return result;
       }
 
       /// @}
