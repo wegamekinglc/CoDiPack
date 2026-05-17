@@ -109,7 +109,7 @@ namespace codi {
       /// deallocated manually beforehand.
       CODI_INLINE void free() {
         // Clear used data.
-        std::fill(data.begin(), data.begin() + dataPos, 0);
+        std::fill(data.begin(), data.begin() + dataPos, char{});
         dataPos = 0;
       }
   };
